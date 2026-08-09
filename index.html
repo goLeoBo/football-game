@@ -3398,17 +3398,10 @@ function showWCCover(onComplete){
     setTimeout(()=>{cover.remove(); if(onComplete) onComplete(); else startWorldCup();},600);
   };
 
-  // 移动端跳过视频，直接 CSS 动画封面
+  // 移动端小视频（739KB），桌面端高清（14MB），都保留 CSS 回退
   const isMobile='ontouchstart' in window||navigator.maxTouchPoints>0||window.innerWidth<768;
+  const videoSrc=isMobile?'wc-intro-mobile.mp4':'wc-intro.mp4';
 
-  if(isMobile){
-    skipBtn.addEventListener('click',(e)=>{ e.stopPropagation(); proceed(); });
-    cover.addEventListener('click',(e)=>{ if(e.target!==skipBtn) proceed(); });
-    setTimeout(proceed,4500); // 4.5秒后自动进入
-    return;
-  }
-
-  // 桌面端：高清视频背景
   const video=document.createElement('video');
   video.className='wc-cover-video';
   video.setAttribute('playsinline','');
@@ -3418,9 +3411,9 @@ function showWCCover(onComplete){
 
   let videoActive=false;
   const hideVideo=()=>{ if(!videoActive){ videoActive=true; video.style.display='none'; } };
-  const videoFailTimer=setTimeout(hideVideo,3000);
+  const videoFailTimer=setTimeout(hideVideo,isMobile?5000:3000);
 
-  video.src='wc-intro.mp4';
+  video.src=videoSrc;
   video.load();
   const p=video.play();
   if(p&&p.catch) p.catch(()=>{ hideVideo(); });
@@ -3429,7 +3422,8 @@ function showWCCover(onComplete){
   video.addEventListener('error',()=>{ hideVideo(); });
   video.addEventListener('ended',()=>{ setTimeout(proceed,400); });
 
-  const fallbackTimer=setTimeout(proceed,5500);
+  // 兜底：移动端 6 秒，桌面端 5.5 秒
+  const fallbackTimer=setTimeout(proceed,isMobile?6000:5500);
   video.addEventListener('playing',()=>{ clearTimeout(fallbackTimer); });
 
   skipBtn.addEventListener('click',(e)=>{ e.stopPropagation(); proceed(); });
