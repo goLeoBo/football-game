@@ -3373,12 +3373,26 @@ let wc = null;
 function showWCCover(onComplete){
   const cover=document.createElement('div');
   cover.className='wc-cover';
-  cover.style.background='#000';
-  // 视频背景（wc-intro.mp4，放入同目录）
+  // 装饰层（视频不播放/加载失败时的视觉回退）
+  const bg=document.createElement('div');
+  bg.className='wc-cover-bg';
+  cover.appendChild(bg);
+  const lights=document.createElement('div');
+  lights.className='wc-cover-lights';
+  cover.appendChild(lights);
+  const content=document.createElement('div');
+  content.className='wc-cover-content';
+  content.innerHTML=`<div class="wc-cover-sub">FIFA WORLD CUP</div><div class="wc-cover-2026">2026</div><div class="wc-cover-title">世 界 杯</div><div class="wc-cover-hosts">🇺🇸🇨🇦🇲🇽</div><div class="wc-cover-trophy">🏆</div><div class="wc-cover-continue">点击屏幕进入 · 或等待自动跳转</div>`;
+  cover.appendChild(content);
+  // 视频背景
   const video=document.createElement('video');
   video.className='wc-cover-video';
+  video.setAttribute('playsinline','');
+  video.setAttribute('webkit-playsinline','');
+  video.setAttribute('preload','auto');
+  video.muted=true;
+  video.loop=false;
   video.src='wc-intro.mp4';
-  video.autoplay=true; video.muted=true; video.playsInline=true; video.loop=false;
   cover.appendChild(video);
   // 跳过按钮
   const skipBtn=document.createElement('div');
@@ -3392,6 +3406,11 @@ function showWCCover(onComplete){
     cover.style.opacity='0';
     setTimeout(()=>{cover.remove(); if(onComplete) onComplete(); else startWorldCup();},600);
   };
+  // 尝试播放视频（移动端需显式调用 play()）
+  const tryPlay=()=>{ const p=video.play(); if(p&&p.catch) p.catch(()=>{/* 视频无法自动播放，显示静态封面 */}); };
+  tryPlay();
+  // 视频加载失败 → 隐藏视频层，露出装饰层
+  video.addEventListener('error',()=>{ video.style.display='none'; });
   // 视频播放结束后自动进入
   video.addEventListener('ended', ()=>{ setTimeout(proceed, 400); });
   // 加载失败或长时间卡住 → 5.5秒自动进入
@@ -3399,7 +3418,7 @@ function showWCCover(onComplete){
   video.addEventListener('playing', ()=>{ clearTimeout(fallbackTimer); });
   // 点击跳过
   skipBtn.addEventListener('click',(e)=>{ e.stopPropagation(); proceed(); });
-  cover.addEventListener('click',(e)=>{ if(e.target===cover) proceed(); });
+  cover.addEventListener('click',(e)=>{ if(e.target===cover||e.target===content||e.target===bg||e.target===lights) proceed(); });
 }
 
 function startWorldCup(){
