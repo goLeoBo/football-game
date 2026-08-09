@@ -3401,10 +3401,8 @@ function showWCCover(onComplete){
     setTimeout(()=>{cover.remove(); if(onComplete) onComplete(); else startWorldCup();},600);
   };
 
-  // 移动端小视频（739KB），桌面端高清（14MB），都保留 CSS 回退
+  // 移动端用内嵌 base64 视频，桌面端优先外部高清文件
   const isMobile='ontouchstart' in window||navigator.maxTouchPoints>0||window.innerWidth<768;
-  // 优先外部文件，不存在则用内嵌 base64 视频兜底
-  const videoSrc=isMobile?'wc-intro-mobile.mp4':'wc-intro.mp4';
   const getVideoSrc=()=>{
     if(isMobile) return EMBEDDED_VIDEO; // 移动端直接用内嵌视频，不怕丢
     return 'wc-intro.mp4'; // 桌面端尝试外部高清视频
