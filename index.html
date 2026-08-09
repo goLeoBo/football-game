@@ -3433,19 +3433,6 @@ function showWCCover(onComplete){
   cover.addEventListener('click',(e)=>{ if(e.target!==skipBtn) proceed(); });
 }
 
-  video.addEventListener('playing',()=>{ videoOK=true; clearTimeout(videoFailTimer); });
-  video.addEventListener('error',()=>{ hideVideo(); });
-  video.addEventListener('ended',()=>{ setTimeout(proceed,400); });
-
-  // 兜底：5秒后进入
-  const fallbackTimer=setTimeout(proceed,5500);
-  video.addEventListener('playing',()=>{ clearTimeout(fallbackTimer); });
-
-  // 点击跳过
-  skipBtn.addEventListener('click',(e)=>{ e.stopPropagation(); proceed(); });
-  cover.addEventListener('click',(e)=>{ if(e.target!==skipBtn) proceed(); });
-}
-
 function startWorldCup(){
   let h=`<h1>🌍 2026 世界杯</h1><div class="tag">48队 · 12组 · 大力神杯</div>`;
   h+=`<p>选择你心仪的国家队，开启夺冠征程</p>`;
