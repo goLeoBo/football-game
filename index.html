@@ -3398,17 +3398,11 @@ function showWCCover(onComplete){
     setTimeout(()=>{cover.remove(); if(onComplete) onComplete(); else startWorldCup();},600);
   };
 
-  // 检测是否移动端（触摸 + 小屏）：跳过视频加载，直接用 CSS 动画封面
+  // 移动端用小视频（739KB），桌面端用高清视频（13MB）
   const isMobile='ontouchstart' in window||navigator.maxTouchPoints>0||window.innerWidth<768;
-  if(isMobile){
-    // 移动端：不加载视频，CSS 动画封面即完整视觉
-    const fallbackTimer=setTimeout(proceed,4000);
-    skipBtn.addEventListener('click',(e)=>{ e.stopPropagation(); proceed(); });
-    cover.addEventListener('click',(e)=>{ if(e.target!==skipBtn) proceed(); });
-    return;
-  }
+  const videoSrc=isMobile?'wc-intro-mobile.mp4':'wc-intro.mp4';
 
-  // 桌面端：尝试播放视频
+  // 尝试播放视频
   const video=document.createElement('video');
   video.className='wc-cover-video';
   video.setAttribute('playsinline','');
@@ -3418,12 +3412,26 @@ function showWCCover(onComplete){
 
   let videoOK=false;
   const hideVideo=()=>{ if(!videoOK){ videoOK=true; video.style.display='none'; } };
-  const videoFailTimer=setTimeout(hideVideo,2000);
+  // 移动端给 3 秒加载时间（739KB 绰绰有余），桌面端 2 秒
+  const videoFailTimer=setTimeout(hideVideo,isMobile?3000:2000);
 
-  video.src='wc-intro.mp4';
+  video.src=videoSrc;
   video.load();
   const p=video.play();
   if(p&&p.catch) p.catch(()=>{ hideVideo(); });
+
+  video.addEventListener('playing',()=>{ videoOK=true; clearTimeout(videoFailTimer); });
+  video.addEventListener('error',()=>{ hideVideo(); });
+  video.addEventListener('ended',()=>{ setTimeout(proceed,400); });
+
+  // 兜底：5.5秒后无论如何进入
+  const fallbackTimer=setTimeout(proceed,5500);
+  video.addEventListener('playing',()=>{ clearTimeout(fallbackTimer); });
+
+  // 点击跳过
+  skipBtn.addEventListener('click',(e)=>{ e.stopPropagation(); proceed(); });
+  cover.addEventListener('click',(e)=>{ if(e.target!==skipBtn) proceed(); });
+}
 
   video.addEventListener('playing',()=>{ videoOK=true; clearTimeout(videoFailTimer); });
   video.addEventListener('error',()=>{ hideVideo(); });
