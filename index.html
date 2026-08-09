@@ -3428,6 +3428,7 @@ function showWCCover(onComplete){
   video.addEventListener('error',()=>{
     if(!isMobile && video.src!==EMBEDDED_VIDEO){
       // 桌面端外部文件丢失，切到内嵌视频重试
+      videoActive=false; video.style.display='';
       video.src=EMBEDDED_VIDEO; video.load(); video.play().catch(()=>{ hideVideo(); });
       return;
     }
