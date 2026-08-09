@@ -3401,12 +3401,8 @@ function showWCCover(onComplete){
     setTimeout(()=>{cover.remove(); if(onComplete) onComplete(); else startWorldCup();},600);
   };
 
-  // 移动端用内嵌 base64 视频，桌面端优先外部高清文件
+  // 全部使用内嵌 base64 视频，永远不依赖外部文件
   const isMobile='ontouchstart' in window||navigator.maxTouchPoints>0||window.innerWidth<768;
-  const getVideoSrc=()=>{
-    if(isMobile) return EMBEDDED_VIDEO; // 移动端直接用内嵌视频，不怕丢
-    return 'wc-intro.mp4'; // 桌面端尝试外部高清视频
-  };
 
   const video=document.createElement('video');
   video.className='wc-cover-video';
@@ -3417,23 +3413,14 @@ function showWCCover(onComplete){
 
   let videoActive=false;
   const hideVideo=()=>{ if(!videoActive){ videoActive=true; video.style.display='none'; } };
-  const videoFailTimer=setTimeout(hideVideo,isMobile?5000:3000);
+  const videoFailTimer=setTimeout(hideVideo,isMobile?6000:4000);
 
-  video.src=getVideoSrc();
+  video.src=EMBEDDED_VIDEO;
   video.load();
-  const p=video.play();
-  if(p&&p.catch) p.catch(()=>{ hideVideo(); });
+  video.play().catch(()=>{ hideVideo(); });
 
   video.addEventListener('playing',()=>{ videoActive=true; clearTimeout(videoFailTimer); });
-  video.addEventListener('error',()=>{
-    if(!isMobile && video.src!==EMBEDDED_VIDEO){
-      // 桌面端外部文件丢失，切到内嵌视频重试
-      videoActive=false; video.style.display='';
-      video.src=EMBEDDED_VIDEO; video.load(); video.play().catch(()=>{ hideVideo(); });
-      return;
-    }
-    hideVideo();
-  });
+  video.addEventListener('error',()=>{ hideVideo(); });
   video.addEventListener('ended',()=>{ setTimeout(proceed,400); });
 
   // 兜底：移动端 6 秒，桌面端 5.5 秒
