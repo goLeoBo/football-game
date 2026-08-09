@@ -3373,7 +3373,7 @@ let wc = null;
 function showWCCover(onComplete){
   const cover=document.createElement('div');
   cover.className='wc-cover';
-  // 装饰层（视频不播放/加载失败时的视觉回退）
+  // 装饰层（CSS 动画：渐变背景 + 灯光 + 文字 + 奖杯）
   const bg=document.createElement('div');
   bg.className='wc-cover-bg';
   cover.appendChild(bg);
@@ -3389,14 +3389,6 @@ function showWCCover(onComplete){
   skipBtn.className='wc-cover-skip';
   skipBtn.textContent='跳过 ▶';
   cover.appendChild(skipBtn);
-  // 视频背景（先加入DOM再设src，移动端兼容）
-  const video=document.createElement('video');
-  video.className='wc-cover-video';
-  video.setAttribute('playsinline','');
-  video.setAttribute('webkit-playsinline','');
-  video.muted=true;
-  video.loop=false;
-  cover.appendChild(video);
   document.body.appendChild(cover);
 
   let advanced=false;
@@ -3406,29 +3398,38 @@ function showWCCover(onComplete){
     setTimeout(()=>{cover.remove(); if(onComplete) onComplete(); else startWorldCup();},600);
   };
 
-  // 视频回退计时器：1.5秒内没开始播放就放弃
-  let videoFailed=false;
-  const giveUpVideo=()=>{
-    if(videoFailed) return; videoFailed=true;
-    video.style.display='none';
-  };
-  const videoFailTimer=setTimeout(giveUpVideo,1500);
+  // 检测是否移动端（触摸 + 小屏）：跳过视频加载，直接用 CSS 动画封面
+  const isMobile='ontouchstart' in window||navigator.maxTouchPoints>0||window.innerWidth<768;
+  if(isMobile){
+    // 移动端：不加载视频，CSS 动画封面即完整视觉
+    const fallbackTimer=setTimeout(proceed,4000);
+    skipBtn.addEventListener('click',(e)=>{ e.stopPropagation(); proceed(); });
+    cover.addEventListener('click',(e)=>{ if(e.target!==skipBtn) proceed(); });
+    return;
+  }
 
-  // 尝试播放
-  const tryPlay=()=>{
-    video.src='wc-intro.mp4';
-    video.load();
-    const p=video.play();
-    if(p&&p.catch) p.catch(()=>{ giveUpVideo(); });
-  };
-  // 延迟一帧执行，确保DOM已挂载
-  requestAnimationFrame(()=>{ requestAnimationFrame(tryPlay); });
+  // 桌面端：尝试播放视频
+  const video=document.createElement('video');
+  video.className='wc-cover-video';
+  video.setAttribute('playsinline','');
+  video.setAttribute('webkit-playsinline','');
+  video.muted=true; video.loop=false;
+  cover.insertBefore(video,cover.firstChild);
 
-  video.addEventListener('playing',()=>{ clearTimeout(videoFailTimer); });
-  video.addEventListener('error',()=>{ giveUpVideo(); });
+  let videoOK=false;
+  const hideVideo=()=>{ if(!videoOK){ videoOK=true; video.style.display='none'; } };
+  const videoFailTimer=setTimeout(hideVideo,2000);
+
+  video.src='wc-intro.mp4';
+  video.load();
+  const p=video.play();
+  if(p&&p.catch) p.catch(()=>{ hideVideo(); });
+
+  video.addEventListener('playing',()=>{ videoOK=true; clearTimeout(videoFailTimer); });
+  video.addEventListener('error',()=>{ hideVideo(); });
   video.addEventListener('ended',()=>{ setTimeout(proceed,400); });
 
-  // 兜底：5秒后无论如何进入
+  // 兜底：5秒后进入
   const fallbackTimer=setTimeout(proceed,5500);
   video.addEventListener('playing',()=>{ clearTimeout(fallbackTimer); });
 
