@@ -3398,11 +3398,17 @@ function showWCCover(onComplete){
     setTimeout(()=>{cover.remove(); if(onComplete) onComplete(); else startWorldCup();},600);
   };
 
-  // 移动端用小视频（739KB），桌面端用高清视频（13MB）
+  // 移动端跳过视频，直接 CSS 动画封面
   const isMobile='ontouchstart' in window||navigator.maxTouchPoints>0||window.innerWidth<768;
-  const videoSrc=isMobile?'wc-intro-mobile.mp4':'wc-intro.mp4';
 
-  // 尝试播放视频
+  if(isMobile){
+    skipBtn.addEventListener('click',(e)=>{ e.stopPropagation(); proceed(); });
+    cover.addEventListener('click',(e)=>{ if(e.target!==skipBtn) proceed(); });
+    setTimeout(proceed,4500); // 4.5秒后自动进入
+    return;
+  }
+
+  // 桌面端：高清视频背景
   const video=document.createElement('video');
   video.className='wc-cover-video';
   video.setAttribute('playsinline','');
@@ -3410,25 +3416,22 @@ function showWCCover(onComplete){
   video.muted=true; video.loop=false;
   cover.insertBefore(video,cover.firstChild);
 
-  let videoOK=false;
-  const hideVideo=()=>{ if(!videoOK){ videoOK=true; video.style.display='none'; } };
-  // 移动端给 3 秒加载时间（739KB 绰绰有余），桌面端 2 秒
-  const videoFailTimer=setTimeout(hideVideo,isMobile?3000:2000);
+  let videoActive=false;
+  const hideVideo=()=>{ if(!videoActive){ videoActive=true; video.style.display='none'; } };
+  const videoFailTimer=setTimeout(hideVideo,3000);
 
-  video.src=videoSrc;
+  video.src='wc-intro.mp4';
   video.load();
   const p=video.play();
   if(p&&p.catch) p.catch(()=>{ hideVideo(); });
 
-  video.addEventListener('playing',()=>{ videoOK=true; clearTimeout(videoFailTimer); });
+  video.addEventListener('playing',()=>{ videoActive=true; clearTimeout(videoFailTimer); });
   video.addEventListener('error',()=>{ hideVideo(); });
   video.addEventListener('ended',()=>{ setTimeout(proceed,400); });
 
-  // 兜底：5.5秒后无论如何进入
   const fallbackTimer=setTimeout(proceed,5500);
   video.addEventListener('playing',()=>{ clearTimeout(fallbackTimer); });
 
-  // 点击跳过
   skipBtn.addEventListener('click',(e)=>{ e.stopPropagation(); proceed(); });
   cover.addEventListener('click',(e)=>{ if(e.target!==skipBtn) proceed(); });
 }
