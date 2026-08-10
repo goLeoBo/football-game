@@ -125,7 +125,7 @@ let wc = null;
 // 世界杯封面动画
 // ==============================================================
 
-function showWCCover(onComplete?: () => void) {
+function showWCCover(onComplete) {
     const cover = document.createElement('div');
     cover.className = 'wc-cover';
     cover.innerHTML = `
@@ -222,18 +222,18 @@ function showWCDrawResult() {
     showPanel(h);
 }
 
-function sortGroup(g: any) {
-    return Object.entries(g.table).sort((a: any, b: any) => {
+function sortGroup(g) {
+    return Object.entries(g.table).sort((a, b) => {
         if (b[1].pts !== a[1].pts) return b[1].pts - a[1].pts;
         if (b[1].gd !== a[1].gd) return b[1].gd - a[1].gd;
         return b[1].gf - a[1].gf;
     });
 }
 
-function renderGroupTable(group: any) {
-    const sorted: any[] = sortGroup(group);
+function renderGroupTable(group) {
+    const sorted= sortGroup(group);
     let h = `<table class="wc-table"><tr><th>#</th><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th></tr>`;
-    sorted.forEach((row: any, i: number) => {
+    sorted.forEach((row, i) => {
         const t = row[0], s = row[1];
         const isUser = t === wc.userTeam;
         h += `<tr class="${isUser ? 'wc-row-user' : ''}"><td>${i + 1}</td><td>${t}</td><td>${s.p}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td>${s.gd > 0 ? '+' : ''}${s.gd}</td><td><b>${s.pts}</b></td></tr>`;
@@ -278,7 +278,7 @@ function showGroupStandings() {
         if (g === userGroup) return;
         const sorted = sortGroup(g);
         h += `<div class="wc-group-mini"><b>${g.name}组</b> · `;
-        h += sorted.map((r: any, i: number) => `${i + 1}.${r[0]}(${r[1].pts})`).join(' ');
+        h += sorted.map((r, i) => `${i + 1}.${r[0]}(${r[1].pts})`).join(' ');
         h += `</div>`;
     });
     h += `</div></div>`;

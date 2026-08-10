@@ -237,8 +237,8 @@ function physicsStep(dt, fullAI) {
 // --- 进球 ---
 function onGoal(team) {
     score[team]++;
-    document.getElementById('sRed')!.textContent = String(score[TEAM_RED]);
-    document.getElementById('sBlue')!.textContent = String(score[TEAM_BLUE]);
+    document.getElementById('sRed').textContent = String(score[TEAM_RED]);
+    document.getElementById('sBlue').textContent = String(score[TEAM_BLUE]);
     scorer = team; state = 'goal'; goalTimer = 2.2;
     showMsg(team === TEAM_RED ? '进球！红队得分' : '进球！蓝队得分', 1500);
     playCrowdCheer(1.0, 3.0);

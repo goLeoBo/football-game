@@ -17,8 +17,8 @@ let scale = 1;
 const TEAM_RED = 0, TEAM_BLUE = 1;
 
 // --- 画布 ---
-const cv = document.getElementById('cv') as HTMLCanvasElement;
-const ctx = cv.getContext('2d')!;
+const cv = document.getElementById('cv') ;
+const ctx = cv.getContext('2d');
 
 // --- 比赛模式状态 ---
 let mode = 'match';          // 'match' | 'penalty'
@@ -43,11 +43,11 @@ let lobPass = null;          // { takerIdx, charging, power, spaceLatch }
 let lobPassPreview = [];     // 蓄力预览轨迹点
 
 // --- 球 ---
-const ball: Record<string, any> = { x: FW / 2, y: FH / 2, vx: 0, vy: 0, vz: 0, z: 0, r: 9, owner: null, lastTeam: 0 };
-let ballTrail: any[] = [];          // 飞行轨迹点
+const ball= { x: FW / 2, y: FH / 2, vx: 0, vy: 0, vz: 0, z: 0, r: 9, owner: null, lastTeam: 0 };
+let ballTrail= [];          // 飞行轨迹点
 
 // --- 球员 ---
-let players: any[] = [];
+let players= [];
 let activeIdx = 0;
 
 // 常用 math 工具

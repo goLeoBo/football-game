@@ -876,8 +876,8 @@ let scale = 1;
 const TEAM_RED = 0, TEAM_BLUE = 1;
 
 // --- 画布 ---
-const cv = document.getElementById('cv') as HTMLCanvasElement;
-const ctx = cv.getContext('2d')!;
+const cv = document.getElementById('cv') ;
+const ctx = cv.getContext('2d');
 
 // --- 比赛模式状态 ---
 let mode = 'match';          // 'match' | 'penalty'
@@ -902,11 +902,11 @@ let lobPass = null;          // { takerIdx, charging, power, spaceLatch }
 let lobPassPreview = [];     // 蓄力预览轨迹点
 
 // --- 球 ---
-const ball: Record<string, any> = { x: FW / 2, y: FH / 2, vx: 0, vy: 0, vz: 0, z: 0, r: 9, owner: null, lastTeam: 0 };
-let ballTrail: any[] = [];          // 飞行轨迹点
+const ball= { x: FW / 2, y: FH / 2, vx: 0, vy: 0, vz: 0, z: 0, r: 9, owner: null, lastTeam: 0 };
+let ballTrail= [];          // 飞行轨迹点
 
 // --- 球员 ---
-let players: any[] = [];
+let players= [];
 let activeIdx = 0;
 
 // 常用 math 工具
@@ -1016,9 +1016,9 @@ function updateCamera(dt) {
 // 包括：裁判哨声、出牌哨声、观众噪音、欢呼、嘘声、鼓掌。
 // =================================================================
 
-let audioCtx: AudioContext | null = null;
+let audioCtx= null;
 
-function getAudio(): AudioContext {
+function getAudio() {
     if (!audioCtx) audioCtx = new AudioContext();
     return audioCtx;
 }
@@ -2836,8 +2836,8 @@ function physicsStep(dt, fullAI) {
 // --- 进球 ---
 function onGoal(team) {
     score[team]++;
-    document.getElementById('sRed')!.textContent = String(score[TEAM_RED]);
-    document.getElementById('sBlue')!.textContent = String(score[TEAM_BLUE]);
+    document.getElementById('sRed').textContent = String(score[TEAM_RED]);
+    document.getElementById('sBlue').textContent = String(score[TEAM_BLUE]);
     scorer = team; state = 'goal'; goalTimer = 2.2;
     showMsg(team === TEAM_RED ? '进球！红队得分' : '进球！蓝队得分', 1500);
     playCrowdCheer(1.0, 3.0);
@@ -3006,7 +3006,7 @@ function updatePenalty(dt) {
             penBall.vx = 0; penBall.vy = 0;
             if (!saved) penScore[TEAM_RED]++;
             penShots[TEAM_RED]++;
-            document.getElementById('sRed')!.textContent = String(penScore[TEAM_RED]);
+            document.getElementById('sRed').textContent = String(penScore[TEAM_RED]);
             renderPenHUD();
             showMsg(saved ? '被扑出！' : '进球！', 1200);
             penState = 'result'; penTimer = 1.4;
@@ -3033,7 +3033,7 @@ function updatePenalty(dt) {
             penBall.vx = 0; penBall.vy = 0;
             if (!saved) penScore[TEAM_BLUE]++;
             penShots[TEAM_BLUE]++;
-            document.getElementById('sBlue')!.textContent = String(penScore[TEAM_BLUE]);
+            document.getElementById('sBlue').textContent = String(penScore[TEAM_BLUE]);
             renderPenHUD();
             showMsg(saved ? '扑出！' : '失球！', 1200);
             penState = 'ai-result'; penTimer = 1.4;
@@ -3222,7 +3222,7 @@ let wc = null;
 // 世界杯封面动画
 // ==============================================================
 
-function showWCCover(onComplete?: () => void) {
+function showWCCover(onComplete) {
     const cover = document.createElement('div');
     cover.className = 'wc-cover';
     cover.innerHTML = `
@@ -3319,18 +3319,18 @@ function showWCDrawResult() {
     showPanel(h);
 }
 
-function sortGroup(g: any) {
-    return Object.entries(g.table).sort((a: any, b: any) => {
+function sortGroup(g) {
+    return Object.entries(g.table).sort((a, b) => {
         if (b[1].pts !== a[1].pts) return b[1].pts - a[1].pts;
         if (b[1].gd !== a[1].gd) return b[1].gd - a[1].gd;
         return b[1].gf - a[1].gf;
     });
 }
 
-function renderGroupTable(group: any) {
-    const sorted: any[] = sortGroup(group);
+function renderGroupTable(group) {
+    const sorted= sortGroup(group);
     let h = `<table class="wc-table"><tr><th>#</th><th>球队</th><th>赛</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>分</th></tr>`;
-    sorted.forEach((row: any, i: number) => {
+    sorted.forEach((row, i) => {
         const t = row[0], s = row[1];
         const isUser = t === wc.userTeam;
         h += `<tr class="${isUser ? 'wc-row-user' : ''}"><td>${i + 1}</td><td>${t}</td><td>${s.p}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td>${s.gd > 0 ? '+' : ''}${s.gd}</td><td><b>${s.pts}</b></td></tr>`;
@@ -3375,7 +3375,7 @@ function showGroupStandings() {
         if (g === userGroup) return;
         const sorted = sortGroup(g);
         h += `<div class="wc-group-mini"><b>${g.name}组</b> · `;
-        h += sorted.map((r: any, i: number) => `${i + 1}.${r[0]}(${r[1].pts})`).join(' ');
+        h += sorted.map((r, i) => `${i + 1}.${r[0]}(${r[1].pts})`).join(' ');
         h += `</div>`;
     });
     h += `</div></div>`;

@@ -56,7 +56,7 @@ function updatePenalty(dt) {
             penBall.vx = 0; penBall.vy = 0;
             if (!saved) penScore[TEAM_RED]++;
             penShots[TEAM_RED]++;
-            document.getElementById('sRed')!.textContent = String(penScore[TEAM_RED]);
+            document.getElementById('sRed').textContent = String(penScore[TEAM_RED]);
             renderPenHUD();
             showMsg(saved ? '被扑出！' : '进球！', 1200);
             penState = 'result'; penTimer = 1.4;
@@ -83,7 +83,7 @@ function updatePenalty(dt) {
             penBall.vx = 0; penBall.vy = 0;
             if (!saved) penScore[TEAM_BLUE]++;
             penShots[TEAM_BLUE]++;
-            document.getElementById('sBlue')!.textContent = String(penScore[TEAM_BLUE]);
+            document.getElementById('sBlue').textContent = String(penScore[TEAM_BLUE]);
             renderPenHUD();
             showMsg(saved ? '扑出！' : '失球！', 1200);
             penState = 'ai-result'; penTimer = 1.4;

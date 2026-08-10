@@ -6,9 +6,9 @@
 // 包括：裁判哨声、出牌哨声、观众噪音、欢呼、嘘声、鼓掌。
 // =================================================================
 
-let audioCtx: AudioContext | null = null;
+let audioCtx= null;
 
-function getAudio(): AudioContext {
+function getAudio() {
     if (!audioCtx) audioCtx = new AudioContext();
     return audioCtx;
 }

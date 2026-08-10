@@ -4,12 +4,7 @@
   "description": "绿茵对决 - 足球游戏",
   "scripts": {
     "build": "node build.js",
-    "dev": "node build.js && echo 'Build complete! Open dist/index.html in your browser.'",
-    "start": "node build.js && npx serve dist",
-    "tsc": "tsc --noEmit"
-  },
-  "devDependencies": {
-    "typescript": "^5.0.0"
+    "start": "node build.js && npx serve dist"
   },
   "private": true
 }
