@@ -1,14 +1,15 @@
 {
-  "name": "football_game",
+  "name": "football-game",
   "version": "1.0.0",
-  "description": "",
-  "main": "dist/index.js",
+  "description": "绿茵对决 - 足球游戏",
   "scripts": {
-    "build": "tsc"
+    "build": "node build.js",
+    "dev": "node build.js && echo 'Build complete! Open dist/index.html in your browser.'",
+    "start": "node build.js && npx serve dist",
+    "tsc": "tsc --noEmit"
   },
-  "dependencies": {},
   "devDependencies": {
-    "typescript": "^6.0.3"
+    "typescript": "^5.0.0"
   },
   "private": true
 }
