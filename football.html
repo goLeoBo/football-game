@@ -2157,77 +2157,94 @@ function fillTrap(tl, tr, br, bl, style){
 }
 // ====== 体育场环境：多层看台 + 逼真观众 + LED电子广告牌 + 摄像机 + 替补席 ======
 // —— 多层看台参数 ——
-const TIER_COUNT = 3;
+const TIER_COUNT = 2;
 const TIER_CONFIG = {
-  far:  { rows:[5,6,7], rowH:[22,20,18], yStart:-3, yDir:-1, stepH:[22,20,18], crowdPerRow:[20,16,13] },
-  near: { rows:[4,5,6], rowH:[22,20,18], yStart:FH+3, yDir:1, stepH:[24,22,20], crowdPerRow:[18,14,11] },
-  left: { rows:[8,7,6], rowH:[16,14,12], yStart:-4, yDir:-1, xStart:-6, xDir:-1, stepW:[16,14,12], crowdPerRow:[26,22,18] },
-  right:{ rows:[8,7,6], rowH:[16,14,12], yStart:-4, yDir:-1, xStart:FW+6, xDir:1, stepW:[16,14,12], crowdPerRow:[26,22,18] },
+  far:  { rows:[6,5], rowH:[13,11], yStart:-1, yDir:-1, stepH:[13,11], crowdPerRow:[58,48] },
+  near: { rows:[6,5], rowH:[13,11], yStart:FH-1, yDir:1, stepH:[13,11], crowdPerRow:[58,48] },
+  left: { rows:[4,4], rowH:[14,12], yStart:-4, yDir:-1, xStart:-5, xDir:-1, stepW:[14,12], crowdPerRow:[55,45] },
+  right:{ rows:[4,4], rowH:[14,12], yStart:-4, yDir:-1, xStart:FW+5, xDir:1, stepW:[14,12], crowdPerRow:[55,45] },
 };
 
 let stadiumCrowd = null;
 function initStadiumCrowd(){
   const arr = [];
   const homeColor = '#dc052d', awayColor = '#ffffff';
-  const crowdColors = [homeColor, homeColor, homeColor, awayColor, awayColor, '#e60000','#ff1a33','#b80020','#ffffff','#ff2d4a','#ff4460'];
-  const skinColors = ['#f0c0a0','#d4a373','#e8b894','#c89270','#ba8766','#ffdead','#cd9358','#ffe0bd'];
+  const crowdColors = [homeColor, homeColor, homeColor, awayColor, awayColor, '#e60000','#ff1a33','#b80020','#ffffff','#ff2d4a','#ff4460','#cc0000','#ff5555','#f0f0f0','#ff6b6b','#c0392b','#e74c3c'];
+  const skinColors = ['#f0c0a0','#d4a373','#e8b894','#c89270','#ba8766','#ffdead','#cd9358','#ffe0bd','#e0a880','#f5d0b0'];
+  const hairColors = ['#1a1a1a','#3a1a0a','#d4a340','#4a4a4a','#222','#8B4513','#5a3a1a','#0a0a0a','#6b3a1a','#c4a040'];
+  const pantsColors = ['#1a1a2a','#2a2a3a','#1a2a1a','#3a2a1a','#222233','#1a1a1a','#2a2a2a','#1a2a2a','#252535','#121220'];
+  const hatColors = ['#1a1a1a','#dc052d','#3a86ff','#222','#555','#a01818','#1a4a99','#333','#ffd60a','#444'];
 
-  // 远端看台（3层）
-  const farCumulDepths = [0, TIER_CONFIG.far.rows[0]*TIER_CONFIG.far.stepH[0], TIER_CONFIG.far.rows[0]*TIER_CONFIG.far.stepH[0]+TIER_CONFIG.far.rows[1]*TIER_CONFIG.far.stepH[1]];
+  // 远端看台（2层）
+  const farCumulDepths = [0, TIER_CONFIG.far.rows[0]*TIER_CONFIG.far.stepH[0]];
   for(let tier=0; tier<TIER_COUNT; tier++){
     const rows = TIER_CONFIG.far.rows[tier];
     const rowH = TIER_CONFIG.far.rowH[tier];
     const yOffset = farCumulDepths[tier];
+    // 主场色占比随层变化
+    const homeBias = tier===0 ? 0.65 : 0.50;
     for(let r=0; r<rows; r++){
       const y = TIER_CONFIG.far.yStart - yOffset + r*rowH*TIER_CONFIG.far.yDir;
-      const density = TIER_CONFIG.far.crowdPerRow[tier] + r;
-      const sectionColor = r<rows/2 ? homeColor : (tier===0?homeColor:crowdColors[Math.floor(Math.random()*crowdColors.length)]);
+      const density = TIER_CONFIG.far.crowdPerRow[tier] + Math.floor(r*1.5);
+      const sectionColor = r<rows/2 ? homeColor : crowdColors[Math.floor(Math.random()*crowdColors.length)];
       for(let i=0; i<density; i++){
-        const x = 6 + (i/(density-1))*(FW-12) + (Math.random()-0.5)*10;
+        const x = 4 + (i/(density-1))*(FW-8) + (Math.random()-0.5)*5;
         arr.push({
           x, y, tier,
-          shirt: Math.random()<0.7 ? sectionColor : crowdColors[Math.floor(Math.random()*crowdColors.length)],
+          shirt: Math.random()<homeBias ? sectionColor : crowdColors[Math.floor(Math.random()*crowdColors.length)],
           skin: skinColors[Math.floor(Math.random()*skinColors.length)],
-          h: 10.5 + Math.random()*7 + tier*1.7,
-          w: 7.5 + Math.random()*5.0,
+          h: 12 + Math.random()*5 + tier*1.5,
+          w: 7 + Math.random()*3.5,
           jitter: Math.random()*Math.PI*2,
-          wave: Math.random()<0.12,
-          clap: Math.random()<0.08,
-          stand: Math.random()<0.06,
-          hasScarf: Math.random()<0.1,
+          clap: Math.random()<0.10,
+          stand: Math.random()<0.04,
+          hasScarf: Math.random()<0.12,
+          hatType: Math.random()<0.06 ? (Math.random()<0.5 ? 'cap' : 'beanie') : null,
+          hatColor: hatColors[Math.floor(Math.random()*hatColors.length)],
+          // 新增动作属性
+          action: pickAction(),
+          actionFreq: 2.5 + Math.random()*4,
+          actionPhase: Math.random()*Math.PI*2,
+          actionAmp: 0.3 + Math.random()*0.7,
         });
       }
     }
   }
-  // 近端看台（3层）
-  const nearCumulDepths = [0, TIER_CONFIG.near.rows[0]*TIER_CONFIG.near.stepH[0], TIER_CONFIG.near.rows[0]*TIER_CONFIG.near.stepH[0]+TIER_CONFIG.near.rows[1]*TIER_CONFIG.near.stepH[1]];
+  // 近端看台（2层）
+  const nearCumulDepths = [0, TIER_CONFIG.near.rows[0]*TIER_CONFIG.near.stepH[0]];
   for(let tier=0; tier<TIER_COUNT; tier++){
     const rows = TIER_CONFIG.near.rows[tier];
     const rowH = TIER_CONFIG.near.rowH[tier];
     const yOffset = nearCumulDepths[tier];
+    const homeBias = tier===0 ? 0.65 : 0.50;
     for(let r=0; r<rows; r++){
       const y = TIER_CONFIG.near.yStart + yOffset + r*rowH;
-      const density = TIER_CONFIG.near.crowdPerRow[tier] + r;
-      const sectionColor = tier<2 ? homeColor : crowdColors[Math.floor(Math.random()*crowdColors.length)];
+      const density = TIER_CONFIG.near.crowdPerRow[tier] + Math.floor(r*1.2);
+      const sectionColor = tier===0 ? homeColor : crowdColors[Math.floor(Math.random()*crowdColors.length)];
       for(let i=0; i<density; i++){
-        const x = 6 + (i/(density-1))*(FW-12) + (Math.random()-0.5)*10;
+        const x = 4 + (i/(density-1))*(FW-8) + (Math.random()-0.5)*5;
         arr.push({
-          x, y, tier: tier+3,
-          shirt: Math.random()<0.65 ? sectionColor : crowdColors[Math.floor(Math.random()*crowdColors.length)],
+          x, y, tier: tier+2,
+          shirt: Math.random()<homeBias ? sectionColor : crowdColors[Math.floor(Math.random()*crowdColors.length)],
           skin: skinColors[Math.floor(Math.random()*skinColors.length)],
-          h: 11 + Math.random()*6.5 + tier*1.4,
-          w: 8.5 + Math.random()*4.5,
+          h: 12 + Math.random()*4.5 + tier*1.4,
+          w: 8 + Math.random()*3.5,
           jitter: Math.random()*Math.PI*2,
-          wave: Math.random()<0.1,
-          clap: Math.random()<0.06,
-          stand: Math.random()<0.04,
-          hasScarf: Math.random()<0.08,
+          clap: Math.random()<0.12,
+          stand: Math.random()<0.05,
+          hasScarf: Math.random()<0.14,
+          hatType: Math.random()<0.08 ? (Math.random()<0.5 ? 'cap' : 'beanie') : null,
+          hatColor: hatColors[Math.floor(Math.random()*hatColors.length)],
+          action: pickAction(),
+          actionFreq: 2.5 + Math.random()*4,
+          actionPhase: Math.random()*Math.PI*2,
+          actionAmp: 0.3 + Math.random()*0.7,
         });
       }
     }
   }
-  // 左侧看台（3层，纵向排列）
-  const leftCumulDepths = [0, TIER_CONFIG.left.rows[0]*TIER_CONFIG.left.stepW[0], TIER_CONFIG.left.rows[0]*TIER_CONFIG.left.stepW[0]+TIER_CONFIG.left.rows[1]*TIER_CONFIG.left.stepW[1]];
+  // 左侧看台（2层，纵向排列）
+  const leftCumulDepths = [0, TIER_CONFIG.left.rows[0]*TIER_CONFIG.left.stepW[0]];
   for(let tier=0; tier<TIER_COUNT; tier++){
     const rows = TIER_CONFIG.left.rows[tier];
     const rowH = TIER_CONFIG.left.rowH[tier];
@@ -2236,23 +2253,28 @@ function initStadiumCrowd(){
       const x = xBase + r*rowH*TIER_CONFIG.left.xDir;
       const density = TIER_CONFIG.left.crowdPerRow[tier];
       for(let i=0; i<density; i++){
-        const y = 8 + (i/(density-1))*(FH-16) + (Math.random()-0.5)*8;
+        const y = 15 + (i/(density-1))*(FH-30) + (Math.random()-0.5)*6;
         arr.push({
-          x, y, tier: tier+6,
+          x, y, tier: tier+4,
           shirt: crowdColors[Math.floor(Math.random()*crowdColors.length)],
           skin: skinColors[Math.floor(Math.random()*skinColors.length)],
-          h: 9 + Math.random()*6.5 + tier*1.3,
-          w: 7 + Math.random()*4.5,
+          h: 9.5 + Math.random()*5 + tier*1.2,
+          w: 6.5 + Math.random()*3.5,
           jitter: Math.random()*Math.PI*2,
-          wave: Math.random()<0.08,
-          clap: Math.random()<0.05,
-          stand: Math.random()<0.04,
-          hasScarf: Math.random()<0.06,
+          clap: Math.random()<0.07,
+          stand: Math.random()<0.03,
+          hasScarf: Math.random()<0.05,
+          hatType: Math.random()<0.04 ? (Math.random()<0.5 ? 'cap' : 'beanie') : null,
+          hatColor: hatColors[Math.floor(Math.random()*hatColors.length)],
+          action: pickAction(),
+          actionFreq: 2 + Math.random()*3.5,
+          actionPhase: Math.random()*Math.PI*2,
+          actionAmp: 0.25 + Math.random()*0.6,
         });
       }
     }
   }
-  // 右侧看台（3层，纵向排列）
+  // 右侧看台（2层，纵向排列）
   for(let tier=0; tier<TIER_COUNT; tier++){
     const rows = TIER_CONFIG.right.rows[tier];
     const rowH = TIER_CONFIG.right.rowH[tier];
@@ -2261,40 +2283,53 @@ function initStadiumCrowd(){
       const x = xBase + r*rowH;
       const density = TIER_CONFIG.right.crowdPerRow[tier];
       for(let i=0; i<density; i++){
-        const y = 8 + (i/(density-1))*(FH-16) + (Math.random()-0.5)*8;
+        const y = 15 + (i/(density-1))*(FH-30) + (Math.random()-0.5)*6;
         arr.push({
-          x, y, tier: tier+9,
+          x, y, tier: tier+6,
           shirt: crowdColors[Math.floor(Math.random()*crowdColors.length)],
           skin: skinColors[Math.floor(Math.random()*skinColors.length)],
-          h: 9 + Math.random()*6.5 + tier*1.3,
-          w: 7 + Math.random()*4.5,
+          h: 9.5 + Math.random()*5 + tier*1.2,
+          w: 6.5 + Math.random()*3.5,
           jitter: Math.random()*Math.PI*2,
-          wave: Math.random()<0.08,
-          clap: Math.random()<0.05,
-          stand: Math.random()<0.04,
-          hasScarf: Math.random()<0.06,
+          clap: Math.random()<0.07,
+          stand: Math.random()<0.03,
+          hasScarf: Math.random()<0.05,
+          hatType: Math.random()<0.04 ? (Math.random()<0.5 ? 'cap' : 'beanie') : null,
+          hatColor: hatColors[Math.floor(Math.random()*hatColors.length)],
+          action: pickAction(),
+          actionFreq: 2 + Math.random()*3.5,
+          actionPhase: Math.random()*Math.PI*2,
+          actionAmp: 0.25 + Math.random()*0.6,
         });
       }
     }
   }
-  // —— 增强球迷属性：旗帜、跳跃、双臂高举、真人比例、发色裤色 ——
+  // 增强属性：旗帜、头发、裤子
   const flagColorsHome = ['#e63946','#e63946','#e63946','#ffd60a','#ffffff'];
   const flagColorsAway = ['#3a86ff','#3a86ff','#3a86ff','#ffd60a','#ffffff'];
   arr.forEach(c=>{
-    c.h *= 1.28; // 放大身高 → 接近真人比例
-    const isHomeSection = c.tier < 6; // far+near 看台偏主队
+    c.h *= 1.15;
+    const isHomeSection = c.tier < 4;
     const flagPool = isHomeSection ? flagColorsHome : flagColorsAway;
-    const flagChance = (c.tier>=3 && c.tier<6) ? 0.075 : 0.04; // 近端看台更多旗
+    const flagChance = (c.tier>=2 && c.tier<4) ? 0.10 : 0.04;
     c.hasFlag = Math.random() < flagChance;
     c.flagColor = flagPool[Math.floor(Math.random()*flagPool.length)];
     c.flagPhase = Math.random()*Math.PI*2;
     c.flagSide = Math.random()<0.5 ? -1 : 1;
-    c.jump = Math.random() < 0.08;
-    c.bothArms = Math.random() < 0.10;
-    c.hair = ['#1a1a1a','#3a1a0a','#d4a340','#4a4a4a','#222','#8B4513','#5a3a1a'][Math.floor(Math.random()*7)];
-    c.pants = ['#1a1a2a','#2a2a3a','#1a2a1a','#3a2a1a','#222233'][Math.floor(Math.random()*5)];
+    c.hair = hairColors[Math.floor(Math.random()*hairColors.length)];
+    c.pants = pantsColors[Math.floor(Math.random()*pantsColors.length)];
+    // 帽子 40% 不给头发
+    c.hasHat = c.hatType && Math.random()<0.6;
   });
   stadiumCrowd = arr;
+}
+
+function pickAction(){
+  const r = Math.random();
+  if(r<0.45) return 'idle';       // 自然下垂
+  if(r<0.70) return 'wave';       // 挥手
+  if(r<0.85) return 'clap';       // 鼓掌
+  return 'bothArms';              // 双手高举
 }
 
 // —— LED电子广告牌 ——
@@ -2359,17 +2394,17 @@ function drawStadium(){
 
   // ========== 第一阶段：看台建筑结构 ==========
 
-  // --- 远端三层看台 ---
-  const farBaseY = -3;
-  const farTierDepth = [5*22, 5*22+6*20, 5*22+6*20+7*18]; // 累计深度: ~110, ~230, ~356
+  // --- 远端两层看台 ---
+  const farBaseY = TIER_CONFIG.far.yStart;
+  const farTierDepth = [0, TIER_CONFIG.far.rows[0]*TIER_CONFIG.far.stepH[0]];
   for(let tier=TIER_COUNT-1; tier>=0; tier--){
     const rows = TIER_CONFIG.far.rows[tier];
-    const yStart = farBaseY - (tier===0?0:farTierDepth[tier-1]);
-    const stepH = [22,20,18][tier];
+    const stepH = TIER_CONFIG.far.stepH[tier];
+    const yStart = farBaseY - farTierDepth[tier];
     for(let r=rows-1; r>=0; r--){
       const y0 = yStart + r*stepH*(-1);
       const y1 = yStart + (r+1)*stepH*(-1);
-      const shade = 14 + tier*8 + r*3;
+      const shade = 16 + tier*10 + r*3;
       const tl=project(-50, y1), tr=project(FW+50, y1);
       const bl=project(-50, y0), br=project(FW+50, y0);
       fillTrap(tl,tr,br,bl, `rgb(${shade},${shade+3},${shade+14})`);
@@ -2377,44 +2412,44 @@ function drawStadium(){
     // 层间分隔栏杆
     const rY = yStart + rows*stepH*(-1);
     const rtl=project(-48,rY), rtr=project(FW+48,rY);
-    const rbl=project(-48,rY-4), rbr=project(FW+48,rY-4);
+    const rbl=project(-48,rY-2), rbr=project(FW+48,rY-2);
     fillTrap(rtl,rtr,rbr,rbl, '#4a4a5a');
     // 看台后墙
     if(tier===TIER_COUNT-1){
       const wY = yStart;
       const wtl=project(-50,wY), wtr=project(FW+50,wY);
-      const wbl=project(-50,wY-20), wbr=project(FW+50,wY-20);
+      const wbl=project(-50,wY-12), wbr=project(FW+50,wY-12);
       fillTrap(wtl,wtr,wbr,wbl, '#252535');
     }
   }
 
-  // --- 近端三层看台 ---
-  const nearBaseY = FH+3;
-  const nearTierDepth = [4*24, 4*24+5*22, 4*24+5*22+6*20]; // 累计深度: 96, 206, 326
+  // --- 近端两层看台 ---
+  const nearBaseY = TIER_CONFIG.near.yStart;
+  const nearTierDepth = [0, TIER_CONFIG.near.rows[0]*TIER_CONFIG.near.stepH[0]];
   for(let tier=TIER_COUNT-1; tier>=0; tier--){
     const rows = TIER_CONFIG.near.rows[tier];
-    const yStart = nearBaseY + (tier===0?0:nearTierDepth[tier-1]);
-    const stepH = [24,22,20][tier];
+    const stepH = TIER_CONFIG.near.stepH[tier];
+    const yStart = nearBaseY + nearTierDepth[tier];
     for(let r=rows-1; r>=0; r--){
       const y0 = yStart + r*stepH;
       const y1 = yStart + (r+1)*stepH;
-      const shade = 12 + tier*7 + r*4;
+      const shade = 14 + tier*8 + r*4;
       const tl=project(-50, y0), tr=project(FW+50, y0);
       const bl=project(-50, y1), br=project(FW+50, y1);
       fillTrap(tl,tr,br,bl, `rgb(${shade},${shade+2},${shade+10})`);
     }
     const rY = yStart + rows*stepH;
     const rtl=project(-48,rY), rtr=project(FW+48,rY);
-    const rbl=project(-48,rY+3), rbr=project(FW+48,rY+3);
+    const rbl=project(-48,rY+2), rbr=project(FW+48,rY+2);
     fillTrap(rtl,rtr,rbr,rbl, '#4a4a5a');
   }
 
   // --- 左侧多层看台 ---
-  const leftTierDepth = [8*16, 8*16+7*14, 8*16+7*14+6*12]; // 累计: 128, 226, 298
+  const leftTierDepth = [0, TIER_CONFIG.left.rows[0]*TIER_CONFIG.left.stepW[0]];
   for(let tier=TIER_COUNT-1; tier>=0; tier--){
-    const xStart = -6 - (tier===0?0:leftTierDepth[tier-1]);
-    const rows = [8,7,6][tier];
-    const stepW = [16,14,12][tier];
+    const xStart = TIER_CONFIG.left.xStart - leftTierDepth[tier];
+    const rows = TIER_CONFIG.left.rows[tier];
+    const stepW = TIER_CONFIG.left.stepW[tier];
     for(let r=rows-1; r>=0; r--){
       const x0 = xStart + r*stepW*(-1);
       const x1 = xStart + (r+1)*stepW*(-1);
@@ -2424,16 +2459,16 @@ function drawStadium(){
       fillTrap(tl,tr,br,bl, `rgb(${shade},${shade+3},${shade+12})`);
     }
     const rx = xStart + rows*stepW*(-1);
-    const rtl=project(rx,-48), rtr=project(rx+3,-48);
-    const rbl=project(rx,FH+48), rbr=project(rx+3,FH+48);
+    const rtl=project(rx,-48), rtr=project(rx+2,-48);
+    const rbl=project(rx,FH+48), rbr=project(rx+2,FH+48);
     fillTrap(rtl,rtr,rbr,rbl, '#4a4a5a');
   }
 
   // --- 右侧多层看台 ---
   for(let tier=TIER_COUNT-1; tier>=0; tier--){
-    const xStart = FW+6 + (tier===0?0:leftTierDepth[tier-1]);
-    const rows = [8,7,6][tier];
-    const stepW = [16,14,12][tier];
+    const xStart = TIER_CONFIG.right.xStart + leftTierDepth[tier];
+    const rows = TIER_CONFIG.right.rows[tier];
+    const stepW = TIER_CONFIG.right.stepW[tier];
     for(let r=rows-1; r>=0; r--){
       const x0 = xStart + r*stepW;
       const x1 = xStart + (r+1)*stepW;
@@ -2443,8 +2478,8 @@ function drawStadium(){
       fillTrap(tl,tr,br,bl, `rgb(${shade},${shade+3},${shade+12})`);
     }
     const rx = xStart + rows*stepW;
-    const rtl=project(rx-3,-48), rtr=project(rx,-48);
-    const rbl=project(rx-3,FH+48), rbr=project(rx,FH+48);
+    const rtl=project(rx-2,-48), rtr=project(rx,-48);
+    const rbl=project(rx-2,FH+48), rbr=project(rx,FH+48);
     fillTrap(rtl,rtr,rbr,rbl, '#4a4a5a');
   }
 
@@ -2520,90 +2555,140 @@ function drawStadium(){
     }
   });
 
-  // ========== 第三阶段：观众人群（多层渲染） ==========
+  // ========== 第三阶段：观众人群（分级渲染 + 人浪 + 动作动画） ==========
+  // 人浪参数（墨西哥波浪 wave）
+  const wavePeriod = 7.2;          // 完整周期（秒），从左到右
+  const waveWidth = 95;            // 波浪半峰宽（世界坐标）
+  const waveAmplitude = 0.28;      // 起立高度倍率
+  const wavePhase = (t % wavePeriod) / wavePeriod; // 0→1 循环
+  // 进球后额外触发的加速人浪
+  const boosted = (typeof goalTimer!=='undefined' && goalTimer>0 && goalTimer<2.0);
+
   // 按深度排序（远的先画）
   const sorted = [...stadiumCrowd].sort((a,b)=>a.y - b.y);
   sorted.forEach(c=>{
     const pos = project(c.x, c.y);
     const ds = pos.dscale;
-    if(ds<0.15) return;
-    // 跳跃动画
-    const jumpOffset = c.jump ? Math.abs(Math.sin(t*3.8 + c.jitter)) * c.h*ds*0.32 : 0;
-    const bob = Math.sin(t*2.3 + c.jitter)*0.9 - jumpOffset;
+    // 性能优化：极远处跳过
+    if(ds<0.12) return;
+
+    // === 人浪计算 ===
+    // 波浪沿 x 从左到右传播：以世界坐标 x 为准
+    const waveCenter = wavePhase * FW;
+    let inWave = 0;
+    if(!boosted){
+      const dx = c.x - waveCenter;
+      // 处理循环边界
+      const dxWrapped = Math.min(Math.abs(dx), Math.abs(dx - FW), Math.abs(dx + FW));
+      if(dxWrapped < waveWidth){
+        inWave = Math.max(0, 1 - dxWrapped/waveWidth) * (0.5 + 0.5*Math.cos(dxWrapped/waveWidth*Math.PI));
+      }
+    } else {
+      // 进球后：全场随机爆发
+      const cx = c.x + c.jitter*120;
+      const bx = ((cx / FW) * wavePeriod + t*3.5) % wavePeriod;
+      inWave = Math.max(0, Math.sin(bx/wavePeriod*Math.PI*2)*0.5+0.5);
+      if(inWave<0.3) inWave=0;
+    }
+    // 人浪使人物升高（起立举臂）
+    const waveRise = inWave * waveAmplitude * c.h * ds;
+    // 正常微动
+    const idleBob = Math.sin(t*2.2 + c.jitter)*0.9;
+
     const bodyW = c.w*ds, bodyH = c.h*ds;
-    const px = pos.sx, py = pos.sy + bob;
-    ctx.globalAlpha = Math.min(1, 0.45 + ds*0.55);
+    const px = pos.sx, py = pos.sy + idleBob - waveRise;
+    ctx.globalAlpha = Math.min(1, 0.40 + ds*0.60);
+
+    // 动作动画强度（用于手臂动画）
+    const actStrength = Math.abs(Math.sin(t*c.actionFreq + c.actionPhase)) * c.actionAmp;
 
     if(ds<0.35){
-      // —— 远排简化：头+躯干+双腿色块，真人比例感 ——
+      // ===== 远景简化：色块躯干 + 圆头 + 单臂 =====
       // 双腿
       ctx.fillStyle = c.pants;
-      ctx.fillRect(px-bodyW*0.22, py-bodyH*0.42, bodyW*0.17, bodyH*0.42);
-      ctx.fillRect(px+bodyW*0.05, py-bodyH*0.42, bodyW*0.17, bodyH*0.42);
+      const lLegX = px-bodyW*0.18, rLegX = px+bodyW*0.04;
+      ctx.fillRect(lLegX, py-bodyH*0.40, bodyW*0.15, bodyH*0.40);
+      ctx.fillRect(rLegX, py-bodyH*0.40, bodyW*0.15, bodyH*0.40);
       // 躯干（球衣梯形）
       ctx.fillStyle = c.shirt;
       ctx.beginPath();
-      ctx.moveTo(px-bodyW*0.30, py-bodyH*0.42);
-      ctx.lineTo(px+bodyW*0.30, py-bodyH*0.42);
-      ctx.lineTo(px+bodyW*0.22, py-bodyH*0.78);
-      ctx.lineTo(px-bodyW*0.22, py-bodyH*0.78);
+      ctx.moveTo(px-bodyW*0.28, py-bodyH*0.40);
+      ctx.lineTo(px+bodyW*0.28, py-bodyH*0.40);
+      ctx.lineTo(px+bodyW*0.20, py-bodyH*0.76);
+      ctx.lineTo(px-bodyW*0.20, py-bodyH*0.76);
       ctx.closePath(); ctx.fill();
       // 头
       ctx.fillStyle = c.skin;
-      ctx.beginPath();ctx.arc(px, py-bodyH*0.87, bodyW*0.24, 0, Math.PI*2);ctx.fill();
-      // 远处挥手/举手
-      if(c.wave || c.bothArms){
-        ctx.strokeStyle=c.skin;ctx.lineWidth=bodyW*0.11;ctx.lineCap='round';
-        ctx.beginPath();ctx.moveTo(px+bodyW*0.18,py-bodyH*0.72);ctx.lineTo(px+bodyW*0.32,py-bodyH*0.96);ctx.stroke();
-        if(c.bothArms){
-          ctx.beginPath();ctx.moveTo(px-bodyW*0.18,py-bodyH*0.72);ctx.lineTo(px-bodyW*0.32,py-bodyH*0.96);ctx.stroke();
+      ctx.beginPath();ctx.arc(px, py-bodyH*0.86, bodyW*0.22, 0, Math.PI*2);ctx.fill();
+      // 头发
+      if(!c.hasHat){
+        ctx.fillStyle = c.hair;
+        ctx.beginPath();
+        ctx.arc(px, py-bodyH*0.86-bodyW*0.04, bodyW*0.20, Math.PI*0.88, Math.PI*2.12);
+        ctx.fill();
+      }
+      // 帽子
+      if(c.hasHat && c.hatType==='cap'){
+        ctx.fillStyle = c.hatColor;
+        ctx.beginPath();
+        ctx.ellipse(px, py-bodyH*0.86-bodyW*0.06, bodyW*0.24, bodyW*0.06, 0, Math.PI, Math.PI*2);
+        ctx.fill();
+      }
+      // 手臂动作
+      if((c.action==='wave'||c.action==='bothArms') || inWave>0.5){
+        const armRaise = Math.max(actStrength, inWave);
+        ctx.strokeStyle=c.skin;ctx.lineWidth=bodyW*0.10;ctx.lineCap='round';
+        ctx.beginPath();ctx.moveTo(px+bodyW*0.16,py-bodyH*0.70);
+        ctx.lineTo(px+bodyW*0.30,py-bodyH*0.92-armRaise*bodyH*0.12);ctx.stroke();
+        if(c.action==='bothArms' || inWave>0.7){
+          ctx.beginPath();ctx.moveTo(px-bodyW*0.16,py-bodyH*0.70);
+          ctx.lineTo(px-bodyW*0.30,py-bodyH*0.92-armRaise*bodyH*0.12);ctx.stroke();
         }
       }
       // 远处旗帜
-      if(c.hasFlag){
-        const fp = px + c.flagSide*bodyW*0.35;
-        ctx.strokeStyle='#aaa';ctx.lineWidth=bodyW*0.06;
-        ctx.beginPath();ctx.moveTo(fp,py-bodyH*0.7);ctx.lineTo(fp,py-bodyH*1.55);ctx.stroke();
-        const fw=bodyW*0.9, fh=bodyW*0.6;
+      if(c.hasFlag && ds>0.20){
+        const fp = px + c.flagSide*bodyW*0.32;
+        ctx.strokeStyle='#8B6914';ctx.lineWidth=bodyW*0.05;
+        ctx.beginPath();ctx.moveTo(fp,py-bodyH*0.70);ctx.lineTo(fp,py-bodyH*1.50);ctx.stroke();
+        const fw=bodyW*0.8, fh=bodyW*0.55;
         ctx.fillStyle=c.flagColor;
         ctx.beginPath();
-        ctx.moveTo(fp,py-bodyH*1.55);
-        ctx.lineTo(fp+c.flagSide*fw,py-bodyH*1.48+Math.sin(t*4+c.flagPhase)*fh*0.15);
-        ctx.lineTo(fp+c.flagSide*fw,py-bodyH*1.48-fh+Math.sin(t*4+c.flagPhase)*fh*0.15);
-        ctx.lineTo(fp,py-bodyH*1.55-fh);
+        ctx.moveTo(fp,py-bodyH*1.50);
+        ctx.lineTo(fp+c.flagSide*fw,py-bodyH*1.43+Math.sin(t*4+c.flagPhase)*fh*0.12);
+        ctx.lineTo(fp+c.flagSide*fw,py-bodyH*1.43-fh+Math.sin(t*4+c.flagPhase)*fh*0.12);
+        ctx.lineTo(fp,py-bodyH*1.50-fh);
         ctx.closePath();ctx.fill();
       }
     } else {
-      // —— 近排精细：真人比例 头/颈/躯干/双臂/双腿 + 助威动作 + 队伍旗帜 ——
-      // 比例：头≈1/7 躯干≈3/7 腿≈3/7
-      const headR = bodyH*0.075;
-      const headCY = py-bodyH*0.875;
+      // ===== 近景精细：双腿 + 躯干 + 头/发/帽 + 眼睛 + 双臂动作 + 围巾 + 旗帜 =====
+      const headR = bodyH*0.072;
+      const headCY = py-bodyH*0.87;
       const neckTop = py-bodyH*0.80;
       const shoulderY = py-bodyH*0.76;
-      const waistY = py-bodyH*0.46;
-      const hipY = py-bodyH*0.42;
+      const waistY = py-bodyH*0.47;
+      const hipY = py-bodyH*0.43;
       const legBottomY = py;
-      const shoulderW = bodyW*0.50;
-      const waistW = bodyW*0.38;
+      const shoulderW = bodyW*0.48;
+      const waistW = bodyW*0.36;
 
       // 双腿（裤）
       ctx.fillStyle = c.pants;
       ctx.beginPath();
-      ctx.moveTo(px-bodyW*0.16, hipY);
+      ctx.moveTo(px-bodyW*0.15, hipY);
       ctx.lineTo(px-bodyW*0.02, hipY);
-      ctx.lineTo(px-bodyW*0.06, legBottomY);
-      ctx.lineTo(px-bodyW*0.20, legBottomY);
+      ctx.lineTo(px-bodyW*0.05, legBottomY);
+      ctx.lineTo(px-bodyW*0.19, legBottomY);
       ctx.closePath(); ctx.fill();
       ctx.beginPath();
       ctx.moveTo(px+bodyW*0.02, hipY);
-      ctx.lineTo(px+bodyW*0.16, hipY);
-      ctx.lineTo(px+bodyW*0.20, legBottomY);
-      ctx.lineTo(px+bodyW*0.06, legBottomY);
+      ctx.lineTo(px+bodyW*0.15, hipY);
+      ctx.lineTo(px+bodyW*0.19, legBottomY);
+      ctx.lineTo(px+bodyW*0.05, legBottomY);
       ctx.closePath(); ctx.fill();
       // 鞋
       ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(px-bodyW*0.21, legBottomY-bodyH*0.035, bodyW*0.17, bodyH*0.04);
-      ctx.fillRect(px+bodyW*0.04, legBottomY-bodyH*0.035, bodyW*0.17, bodyH*0.04);
+      ctx.fillRect(px-bodyW*0.20, legBottomY-bodyH*0.03, bodyW*0.16, bodyH*0.035);
+      ctx.fillRect(px+bodyW*0.04, legBottomY-bodyH*0.03, bodyW*0.16, bodyH*0.035);
 
       // 躯干（球衣）—— 肩宽腰窄梯形
       ctx.fillStyle = c.shirt;
@@ -2613,122 +2698,163 @@ function drawStadium(){
       ctx.lineTo(px+waistW, waistY);
       ctx.lineTo(px-waistW, waistY);
       ctx.closePath(); ctx.fill();
-      // 球衣领口
+      // 球衣号码/条纹暗示
+      if(ds>0.55){
+        ctx.fillStyle = 'rgba(255,255,255,.15)';
+        ctx.fillRect(px-bodyW*0.04, shoulderY, bodyW*0.08, waistY-shoulderY);
+      }
+      // 领口
       ctx.fillStyle = c.skin;
       ctx.beginPath();
-      ctx.ellipse(px, shoulderY+bodyH*0.012, bodyW*0.12, bodyH*0.022, 0, 0, Math.PI*2);
+      ctx.ellipse(px, shoulderY+bodyH*0.01, bodyW*0.11, bodyH*0.02, 0, 0, Math.PI*2);
       ctx.fill();
       // 颈
       ctx.fillStyle = c.skin;
-      ctx.fillRect(px-bodyW*0.07, neckTop, bodyW*0.14, shoulderY-neckTop+1);
+      ctx.fillRect(px-bodyW*0.06, neckTop, bodyW*0.12, shoulderY-neckTop+1);
 
       // 头
       ctx.fillStyle = c.skin;
       ctx.beginPath();ctx.arc(px, headCY, headR, 0, Math.PI*2);ctx.fill();
       // 头发
-      ctx.fillStyle = c.hair;
-      ctx.beginPath();
-      ctx.arc(px, headCY-headR*0.25, headR*0.95, Math.PI*0.88, Math.PI*2.12);
-      ctx.fill();
-      // 眼睛（仅近处可见）
-      if(ds>0.5){
-        ctx.fillStyle='#222';
-        ctx.beginPath();ctx.arc(px-headR*0.35, headCY, headR*0.16,0,Math.PI*2);ctx.fill();
-        ctx.beginPath();ctx.arc(px+headR*0.35, headCY, headR*0.16,0,Math.PI*2);ctx.fill();
+      if(!c.hasHat){
+        ctx.fillStyle = c.hair;
+        ctx.beginPath();
+        ctx.arc(px, headCY-headR*0.22, headR*0.92, Math.PI*0.88, Math.PI*2.12);
+        ctx.fill();
+      }
+      // 帽子
+      if(c.hasHat){
+        if(c.hatType==='cap'){
+          // 鸭舌帽：帽檐 + 帽冠
+          ctx.fillStyle = c.hatColor;
+          ctx.beginPath();
+          ctx.ellipse(px, headCY-headR*0.55, headR*1.05, headR*0.32, 0, Math.PI, Math.PI*2);
+          ctx.fill();
+          // 帽檐
+          ctx.fillStyle = c.hatColor;
+          ctx.beginPath();
+          ctx.moveTo(px-headR*0.9, headCY-headR*0.55);
+          ctx.quadraticCurveTo(px+headR*0.4, headCY-headR*0.35, px+headR*0.9, headCY-headR*0.45);
+          ctx.lineTo(px+headR*0.7, headCY-headR*0.60);
+          ctx.quadraticCurveTo(px, headCY-headR*0.55, px-headR*0.7, headCY-headR*0.60);
+          ctx.closePath(); ctx.fill();
+        } else {
+          // 毛线帽（beanie）：紧贴头部的半圆
+          ctx.fillStyle = c.hatColor;
+          ctx.beginPath();
+          ctx.arc(px, headCY-headR*0.2, headR*0.88, Math.PI*0.92, Math.PI*2.08);
+          ctx.fill();
+          // 顶部小球
+          ctx.beginPath();
+          ctx.arc(px, headCY-headR*1.02, headR*0.18, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+      // 眼睛
+      if(ds>0.48){
+        ctx.fillStyle='#1a1a1a';
+        ctx.beginPath();ctx.arc(px-headR*0.32, headCY+headR*0.02, headR*0.14,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(px+headR*0.32, headCY+headR*0.02, headR*0.14,0,Math.PI*2);ctx.fill();
+        // 嘴巴
+        if(ds>0.6){
+          ctx.strokeStyle='rgba(180,100,80,.6)';ctx.lineWidth=headR*0.08;
+          ctx.beginPath();
+          ctx.arc(px, headCY+headR*0.28, headR*0.18, 0, Math.PI);
+          ctx.stroke();
+        }
       }
 
-      // —— 手臂助威动作 ——
-      ctx.strokeStyle=c.skin;ctx.lineWidth=bodyW*0.13;ctx.lineCap='round';
-      const shoulderLX=px-shoulderW*0.85, shoulderRX=px+shoulderW*0.85;
+      // —— 手臂动作（动画 + 人浪） ——
+      ctx.strokeStyle=c.skin;ctx.lineWidth=bodyW*0.12;ctx.lineCap='round';
+      const shoulderLX=px-shoulderW*0.82, shoulderRX=px+shoulderW*0.82;
 
-      if(c.bothArms){
-        // 双臂高举助威
-        const armWob = Math.sin(t*3.5+c.jitter)*0.3+0.3;
+      if(inWave>0.5 || c.action==='bothArms'){
+        // 人浪或双臂高举
+        const raise = inWave>0.5 ? inWave : actStrength;
+        const armUp = bodyH*0.28 + raise*bodyH*0.12;
         ctx.beginPath();ctx.moveTo(shoulderLX,shoulderY);
-        ctx.lineTo(shoulderLX-bodyW*0.12,shoulderY-bodyH*0.30+armWob*bodyW*0.08);ctx.stroke();
+        ctx.lineTo(shoulderLX-bodyW*0.08,shoulderY-armUp);ctx.stroke();
         ctx.beginPath();ctx.moveTo(shoulderRX,shoulderY);
-        ctx.lineTo(shoulderRX+bodyW*0.12,shoulderY-bodyH*0.30-armWob*bodyW*0.08);ctx.stroke();
+        ctx.lineTo(shoulderRX+bodyW*0.08,shoulderY-armUp);ctx.stroke();
         ctx.fillStyle=c.skin;
-        ctx.beginPath();ctx.arc(shoulderLX-bodyW*0.12,shoulderY-bodyH*0.30+armWob*bodyW*0.08,bodyW*0.10,0,Math.PI*2);ctx.fill();
-        ctx.beginPath();ctx.arc(shoulderRX+bodyW*0.12,shoulderY-bodyH*0.30-armWob*bodyW*0.08,bodyW*0.10,0,Math.PI*2);ctx.fill();
-      } else if(c.wave){
-        // 右手挥舞 + 左手下垂
-        const armAng = Math.sin(t*3.5+c.jitter)*0.55+0.55;
-        const handX = shoulderRX+Math.cos(armAng)*bodyW*0.68;
-        const handY = shoulderY-Math.sin(armAng)*bodyW*0.68;
+        ctx.beginPath();ctx.arc(shoulderLX-bodyW*0.08,shoulderY-armUp,bodyW*0.09,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(shoulderRX+bodyW*0.08,shoulderY-armUp,bodyW*0.09,0,Math.PI*2);ctx.fill();
+      } else if(c.action==='wave'){
+        // 单臂 (右) 挥手
+        const armAng = Math.sin(t*3.2+c.jitter)*0.5+0.5;
+        const handX = shoulderRX+Math.cos(armAng)*bodyW*0.60;
+        const handY = shoulderY-Math.sin(armAng)*bodyW*0.60;
         ctx.beginPath();ctx.moveTo(shoulderRX,shoulderY);ctx.lineTo(handX,handY);ctx.stroke();
-        ctx.beginPath();ctx.moveTo(shoulderLX,shoulderY);ctx.lineTo(shoulderLX-bodyW*0.04,shoulderY+bodyH*0.20);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(shoulderLX,shoulderY);ctx.lineTo(shoulderLX-bodyW*0.03,shoulderY+bodyH*0.18);ctx.stroke();
         ctx.fillStyle=c.skin;
-        ctx.beginPath();ctx.arc(handX,handY,bodyW*0.10,0,Math.PI*2);ctx.fill();
-      } else if(c.clap){
-        // 鼓掌：双手在胸前合击
-        const clapPhase = Math.abs(Math.sin(t*6+c.jitter));
-        const cx1=px-bodyW*0.04-clapPhase*bodyW*0.08, cy1=shoulderY+bodyH*0.10;
-        const cx2=px+bodyW*0.04+clapPhase*bodyW*0.08, cy2=shoulderY+bodyH*0.10;
+        ctx.beginPath();ctx.arc(handX,handY,bodyW*0.09,0,Math.PI*2);ctx.fill();
+      } else if(c.action==='clap'){
+        // 鼓掌：双手胸前合击
+        const clapP = Math.abs(Math.sin(t*5.5+c.jitter));
+        const cx1=px-bodyW*0.04-clapP*bodyW*0.07, cy1=shoulderY+bodyH*0.09;
+        const cx2=px+bodyW*0.04+clapP*bodyW*0.07, cy2=shoulderY+bodyH*0.09;
         ctx.beginPath();ctx.moveTo(shoulderLX,shoulderY);ctx.lineTo(cx1,cy1);ctx.stroke();
         ctx.beginPath();ctx.moveTo(shoulderRX,shoulderY);ctx.lineTo(cx2,cy2);ctx.stroke();
         ctx.fillStyle=c.skin;
-        ctx.beginPath();ctx.arc(cx1,cy1,bodyW*0.09,0,Math.PI*2);ctx.fill();
-        ctx.beginPath();ctx.arc(cx2,cy2,bodyW*0.09,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(cx1,cy1,bodyW*0.08,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(cx2,cy2,bodyW*0.08,0,Math.PI*2);ctx.fill();
       } else {
-        // 自然下垂
-        ctx.beginPath();ctx.moveTo(shoulderLX,shoulderY);ctx.lineTo(shoulderLX-bodyW*0.04,shoulderY+bodyH*0.20);ctx.stroke();
-        ctx.beginPath();ctx.moveTo(shoulderRX,shoulderY);ctx.lineTo(shoulderRX+bodyW*0.04,shoulderY+bodyH*0.20);ctx.stroke();
+        // idle：自然下垂（微动）
+        const dangle = Math.sin(t*1.8+c.jitter)*0.04;
+        ctx.beginPath();ctx.moveTo(shoulderLX,shoulderY);ctx.lineTo(shoulderLX-bodyW*0.03+dangle*bodyW*0.02,shoulderY+bodyH*0.18);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(shoulderRX,shoulderY);ctx.lineTo(shoulderRX+bodyW*0.03-dangle*bodyW*0.02,shoulderY+bodyH*0.18);ctx.stroke();
       }
 
       // 围巾
       if(c.hasScarf){
         ctx.fillStyle = '#ffd60a';
         ctx.beginPath();
-        ctx.ellipse(px, shoulderY+bodyH*0.02, bodyW*0.30, bodyW*0.10, -0.15, 0, Math.PI*2);
+        ctx.ellipse(px, shoulderY+bodyH*0.02, bodyW*0.28, bodyW*0.09, -0.15, 0, Math.PI*2);
         ctx.fill();
         ctx.fillStyle = '#e63946';
         ctx.beginPath();
-        ctx.ellipse(px+bodyW*0.02, shoulderY+bodyH*0.02-bodyW*0.02, bodyW*0.26, bodyW*0.08, -0.15, 0, Math.PI*2);
+        ctx.ellipse(px+bodyW*0.02, shoulderY+bodyH*0.02-bodyW*0.02, bodyW*0.24, bodyW*0.07, -0.15, 0, Math.PI*2);
         ctx.fill();
       }
 
-      // —— 队伍旗帜（波浪飘动） ——
+      // 旗帜
       if(c.hasFlag){
-        const handX = c.flagSide<0 ? shoulderLX-bodyW*0.04 : shoulderRX+bodyW*0.04;
-        const handY = shoulderY+bodyH*0.10;
-        const poleTop = py - bodyH*1.62;
-        // 旗杆
-        ctx.strokeStyle='#8B6914';ctx.lineWidth=bodyW*0.06;ctx.lineCap='round';
+        const handX = c.flagSide<0 ? shoulderLX-bodyW*0.03 : shoulderRX+bodyW*0.03;
+        const handY = shoulderY+bodyH*0.09;
+        const poleTop = py - bodyH*1.55;
+        ctx.strokeStyle='#8B6914';ctx.lineWidth=bodyW*0.055;ctx.lineCap='round';
         ctx.beginPath();ctx.moveTo(handX,handY);ctx.lineTo(handX,poleTop);ctx.stroke();
-        // 旗面（波浪飘动）
-        const flagW = bodyW*1.7, flagH = bodyW*1.05;
-        const wavePhase = t*4 + c.flagPhase;
+        const flagW = bodyW*1.5, flagH = bodyW*0.95;
+        const wvPhase = t*3.8 + c.flagPhase;
         ctx.fillStyle = c.flagColor;
         ctx.beginPath();
         ctx.moveTo(handX, poleTop);
-        for(let i=0;i<=10;i++){
-          const f=i/10;
+        for(let i=0;i<=8;i++){
+          const f=i/8;
           const fx = handX + c.flagSide*flagW*f;
-          const fy = poleTop + Math.sin(wavePhase + f*Math.PI*2.5)*flagH*0.18*f;
+          const fy = poleTop + Math.sin(wvPhase + f*Math.PI*2.2)*flagH*0.16*f;
           ctx.lineTo(fx, fy);
         }
-        for(let i=10;i>=0;i--){
-          const f=i/10;
+        for(let i=8;i>=0;i--){
+          const f=i/8;
           const fx = handX + c.flagSide*flagW*f;
-          const fy = poleTop + flagH + Math.sin(wavePhase + f*Math.PI*2.5)*flagH*0.18*f;
+          const fy = poleTop + flagH + Math.sin(wvPhase + f*Math.PI*2.2)*flagH*0.16*f;
           ctx.lineTo(fx, fy);
         }
         ctx.closePath();ctx.fill();
-        // 旗面高光（上半部）
-        ctx.fillStyle = 'rgba(255,255,255,.16)';
+        ctx.fillStyle = 'rgba(255,255,255,.14)';
         ctx.beginPath();
         ctx.moveTo(handX, poleTop);
-        for(let i=0;i<=10;i++){
-          const f=i/10;
+        for(let i=0;i<=8;i++){
+          const f=i/8;
           const fx = handX + c.flagSide*flagW*f;
-          const fy = poleTop + Math.sin(wavePhase + f*Math.PI*2.5)*flagH*0.18*f;
+          const fy = poleTop + Math.sin(wvPhase + f*Math.PI*2.2)*flagH*0.16*f;
           ctx.lineTo(fx, fy);
         }
-        for(let i=10;i>=0;i--){
-          const f=i/10;
+        for(let i=8;i>=0;i--){
+          const f=i/8;
           const fx = handX + c.flagSide*flagW*f;
-          const fy = poleTop + flagH*0.5 + Math.sin(wavePhase + f*Math.PI*2.5)*flagH*0.18*f;
+          const fy = poleTop + flagH*0.5 + Math.sin(wvPhase + f*Math.PI*2.2)*flagH*0.16*f;
           ctx.lineTo(fx, fy);
         }
         ctx.closePath();ctx.fill();
