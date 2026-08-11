@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>绿茵对决 · 足球游戏</title>
+    <!-- INLINE_CSS -->
+</head>
+<body>
+<div id="wrap">
+    <canvas id="cv"></canvas>
+
+    <div id="hud">
+        <div id="scoreboard">
+            <div class="team"><span class="dot red"></span><span id="redName">红队</span><span class="score" id="sRed">0</span></div>
+            <span class="vs">VS</span>
+            <div class="team"><span class="score" id="sBlue">0</span><span id="blueName">蓝队</span><span class="dot blue"></span></div>
+            <div class="time" id="sTime">1:30</div>
+        </div>
+    </div>
+
+    <div id="msg"></div>
+    <div id="penHUD" style="display:none"></div>
+    <div id="activeName"></div>
+    <button id="btnDebug" title="重置比赛（调试）">↻</button>
+
+    <div id="mctrl">
+        <div id="stick"><div id="stickKnob"></div></div>
+        <div id="mbtns">
+            <button id="btnPass">长传</button>
+            <button id="btnShoot">射门</button>
+            <button id="btnTackle">铲断</button>
+            <button id="btnSprint">疾跑</button>
+        </div>
+    </div>
+
+    <div id="overlay">
+        <div class="panel" id="panel">
+            <!-- 面板由 JS 动态渲染 -->
+        </div>
+    </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+/* INLINE_JS */
+})();
+</script>
+</body>
+</html>

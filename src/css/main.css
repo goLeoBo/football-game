@@ -1,0 +1,810 @@
+/* =================================================================
+   main.css — 游戏全局样式
+   绿茵对决 · 足球游戏
+   涵盖场地、记分牌、菜单面板、世界杯封面动画、移动端适配
+   ================================================================= */
+
+/* --- 重置与基础 --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+    background: #0a1a0a;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #fff;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+}
+
+/* --- 画布容器 --- */
+#wrap {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+canvas {
+    display: block;
+    background: #2d8a2d;
+    box-shadow: 0 0 40px rgba(0,0,0,.6);
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* --- 记分牌 --- */
+#hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 5;
+}
+
+#scoreboard {
+    background: rgba(0,0,0,.65);
+    border-radius: 0 0 14px 14px;
+    padding: 8px 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-variant-numeric: tabular-nums;
+}
+
+#scoreboard .team {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+#scoreboard .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+}
+
+#scoreboard .red  { background: #e63946; }
+#scoreboard .blue { background: #3a86ff; }
+
+#scoreboard .score {
+    font-size: 28px;
+    font-weight: 800;
+    min-width: 34px;
+    text-align: center;
+}
+
+#scoreboard .vs {
+    color: #888;
+    font-size: 14px;
+}
+
+#scoreboard .time {
+    margin-left: 8px;
+    padding-left: 14px;
+    border-left: 1px solid #444;
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffd60a;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* --- 弹出消息 --- */
+#msg {
+    position: absolute;
+    top: 42%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 54px;
+    font-weight: 900;
+    color: #ffd60a;
+    text-shadow: 0 4px 20px rgba(0,0,0,.8);
+    z-index: 7;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .3s;
+}
+
+#msg.show {
+    opacity: 1;
+    animation: pop .5s;
+}
+
+@keyframes pop {
+    0%   { transform: scale(.3); }
+    60%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+/* --- 当前控制球员名 --- */
+#activeName {
+    position: absolute;
+    top: 54px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 14px;
+    color: #ffd60a;
+    font-weight: 700;
+    z-index: 5;
+    pointer-events: none;
+    text-shadow: 0 2px 6px rgba(0,0,0,.9);
+}
+
+/* --- 调试按钮 --- */
+#btnDebug {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(20,20,20,.8);
+    color: #ffd60a;
+    border: 1px solid #555;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 8;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+#btnDebug:active { transform: scale(.9); }
+
+/* --- 菜单遮罩 --- */
+#overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5,15,5,.82);
+    z-index: 10;
+    backdrop-filter: blur(4px);
+}
+
+#overlay.hidden { display: none; }
+
+/* --- 菜单面板 --- */
+.panel {
+    text-align: center;
+    max-width: 520px;
+    padding: 30px;
+}
+
+.panel h1 {
+    font-size: 42px;
+    margin-bottom: 6px;
+    background: linear-gradient(90deg, #ffd60a, #e63946);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.panel .tag {
+    color: #8aff8a;
+    font-size: 14px;
+    margin-bottom: 24px;
+    letter-spacing: 2px;
+}
+
+.panel p {
+    font-size: 15px;
+    color: #bbb;
+    line-height: 1.7;
+    margin-bottom: 18px;
+}
+
+.panel .keys {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 18px;
+    margin: 18px 0;
+    text-align: left;
+    font-size: 13px;
+    color: #ccc;
+}
+
+.panel .keys b {
+    display: inline-block;
+    background: #222;
+    border: 1px solid #444;
+    border-radius: 5px;
+    padding: 2px 8px;
+    margin-right: 6px;
+    font-family: monospace;
+    color: #ffd60a;
+    min-width: 30px;
+    text-align: center;
+}
+
+/* --- 按钮 --- */
+.btn {
+    border: none;
+    padding: 14px 36px;
+    font-size: 18px;
+    font-weight: 700;
+    border-radius: 30px;
+    cursor: pointer;
+    margin: 6px;
+    transition: transform .1s;
+}
+
+.btn:active { transform: scale(.95); }
+
+.btn-primary {
+    background: linear-gradient(135deg, #e63946, #b81d2a);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(230,57,70,.4);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #3a86ff, #1565c0);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(58,134,255,.4);
+}
+
+.btn-ghost {
+    background: transparent;
+    border: 1px solid #555;
+    color: #ccc;
+}
+
+.btn-ghost:hover { background: #2c2c2c; }
+
+.btns {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+.big {
+    font-size: 64px;
+    font-weight: 900;
+    margin: 10px 0;
+}
+
+.big.red  { color: #e63946; }
+.big.blue { color: #3a86ff; }
+.big.draw { color: #ffd60a; }
+
+/* --- 选择器 --- */
+.sel-group  { margin: 8px 0; }
+.sel-label  { font-size: 12px; color: #888; margin-bottom: 6px; }
+
+.sel-btns {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.chip {
+    background: #222;
+    border: 1px solid #444;
+    color: #ccc;
+    padding: 7px 16px;
+    border-radius: 18px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .12s;
+}
+
+.chip.active {
+    background: #e63946;
+    border-color: #e63946;
+    color: #fff;
+}
+
+.chip:active { transform: scale(.95); }
+
+/* --- 对阵预览 --- */
+.matchup {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 10px 0;
+    letter-spacing: .5px;
+}
+
+/* --- 俱乐部选择网格 --- */
+.club-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin: 8px 0;
+}
+
+.club-chip {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #ccc;
+    padding: 8px 4px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .15s;
+    text-align: center;
+}
+
+.club-chip:hover {
+    background: #252525;
+    border-color: #555;
+    color: #fff;
+}
+
+.club-chip.selected {
+    background: linear-gradient(135deg, #ffd60a, #ff8c00);
+    color: #222;
+    border-color: transparent;
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(255,214,10,.4);
+}
+
+/* --- 移动端触控 --- */
+#mctrl {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    display: none;
+}
+
+#mctrl.show { display: block; }
+
+#stick {
+    position: absolute;
+    left: 24px;
+    bottom: 24px;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.08);
+    border: 2px solid rgba(255,255,255,.2);
+    pointer-events: auto;
+}
+
+#stickKnob {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.4);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+#mbtns {
+    position: absolute;
+    right: 24px;
+    bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    pointer-events: none;
+}
+
+#mbtns button {
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
+    border: none;
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+    pointer-events: auto;
+    box-shadow: 0 4px 14px rgba(0,0,0,.4);
+}
+
+#mbtns button:active { transform: scale(.9); }
+
+#btnPass   { background: rgba(58,134,255,.85); }
+#btnShoot  { background: rgba(230,57,70,.85); }
+#btnSprint { background: rgba(255,214,10,.85); color: #222; }
+#btnTackle { background: rgba(40,40,40,.85); color: #fff; border: 1px solid #888; }
+
+/* --- 点球 HUD --- */
+#penHUD {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 14px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.pen-row {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.pen-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.3);
+    background: transparent;
+}
+
+.pen-dot.in  { background: #2e7d32; border-color: #2e7d32; }
+.pen-dot.out { background: #c62828; border-color: #c62828; }
+
+.pen-label {
+    font-size: 13px;
+    font-weight: 700;
+    margin: 0 4px;
+}
+
+.small {
+    font-size: 12px;
+    color: #666;
+    margin-top: 18px;
+}
+
+/* =================================================================
+   世界杯模式样式
+   ================================================================= */
+
+/* --- 球队选择 --- */
+.wc-teams {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin: 6px 0 12px;
+}
+
+.wc-pot-label {
+    font-size: 12px;
+    color: #ffd60a;
+    letter-spacing: 1px;
+    text-align: left;
+    margin-top: 8px;
+}
+
+.wc-team {
+    background: #222;
+    border: 1px solid #444;
+    color: #ddd;
+    padding: 6px 10px;
+    border-radius: 16px;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all .12s;
+}
+
+.wc-team:hover { background: #333; border-color: #ffd60a; }
+.wc-team:active { transform: scale(.95); }
+
+.wc-team .wc-rating {
+    background: #ffd60a;
+    color: #222;
+    font-weight: 800;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 8px;
+}
+
+/* --- 小组表格 --- */
+.wc-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.wc-group {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 8px;
+    text-align: left;
+}
+
+.wc-group-user {
+    border-color: #ffd60a;
+    box-shadow: 0 0 10px rgba(255,214,10,.3);
+}
+
+.wc-group-name {
+    font-size: 13px;
+    font-weight: 800;
+    color: #ffd60a;
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+}
+
+.wc-gt     { font-size: 12px; color: #ccc; padding: 2px 0; }
+.wc-gt-user { color: #fff; font-weight: 800; }
+
+.wc-group-mini {
+    font-size: 11px;
+    color: #999;
+    padding: 3px 0;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.wc-other-groups { margin: 8px 0; text-align: left; }
+
+/* --- 积分表 --- */
+.wc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin: 8px 0;
+}
+
+.wc-table th {
+    background: #222;
+    color: #ffd60a;
+    padding: 5px 3px;
+    font-weight: 700;
+    border-bottom: 1px solid #444;
+    font-size: 11px;
+}
+
+.wc-table td {
+    padding: 4px 3px;
+    border-bottom: 1px solid #2a2a2a;
+    color: #ddd;
+}
+
+.wc-row-user { background: rgba(255,214,10,.12); }
+.wc-row-user td { color: #fff; font-weight: 700; }
+
+/* --- 赛程 --- */
+.wc-fixtures { margin: 10px 0; text-align: left; }
+
+.wc-fix {
+    font-size: 13px;
+    color: #ccc;
+    padding: 5px 8px;
+    background: #1a1a1a;
+    border-radius: 6px;
+    margin: 3px 0;
+}
+
+.wc-fix-user {
+    background: rgba(255,214,10,.15);
+    color: #fff;
+    font-weight: 700;
+    border-left: 3px solid #ffd60a;
+}
+
+/* --- 淘汰赛对阵 --- */
+.wc-bracket {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.wc-ko-round {
+    grid-column: 1 / -1;
+    font-size: 14px;
+    font-weight: 800;
+    color: #ffd60a;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.wc-kmatch {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 6px 10px;
+    text-align: left;
+    font-size: 13px;
+}
+
+.wc-kmatch-user {
+    border-color: #ffd60a;
+    box-shadow: 0 0 8px rgba(255,214,10,.3);
+}
+
+.wc-kmatch div { padding: 2px 0; color: #ccc; }
+.wc-win { color: #7CFC00 !important; font-weight: 800; }
+
+.wc-trophy { margin: 18px 0; text-align: center; }
+.wc-scroll { max-height: 62vh; overflow-y: auto; padding: 0 4px; }
+
+/* =================================================================
+   世界杯封面动画
+   ================================================================= */
+
+.wc-cover {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    background: radial-gradient(ellipse at center, #0a1e3a 0%, #000814 70%);
+    transition: opacity .6s;
+}
+
+.wc-cover-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: .12;
+    background:
+        repeating-linear-gradient(90deg, transparent 0, transparent 49%, rgba(255,255,255,.15) 49%, rgba(255,255,255,.15) 51%),
+        radial-gradient(circle at 50% 50%, transparent 0, transparent 68px, rgba(255,255,255,.4) 68px, rgba(255,255,255,.4) 70px, transparent 70px);
+}
+
+.wc-cover-lights {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 25% 20%, rgba(255,214,10,.06) 0%, transparent 35%),
+        radial-gradient(circle at 75% 25%, rgba(58,134,255,.06) 0%, transparent 35%),
+        radial-gradient(circle at 50% 80%, rgba(230,57,70,.06) 0%, transparent 40%);
+    animation: wcLights 3s ease-in-out infinite alternate;
+}
+
+@keyframes wcLights {
+    0%   { opacity: .6; }
+    100% { opacity: 1; }
+}
+
+.wc-cover-2026 {
+    font-size: 84px;
+    font-weight: 900;
+    color: #ffd60a;
+    letter-spacing: 6px;
+    line-height: 1;
+    text-shadow: 0 0 30px rgba(255,214,10,.6), 0 0 70px rgba(255,214,10,.3), 0 4px 8px rgba(0,0,0,.5);
+    animation: wcZoom 1.2s cubic-bezier(.18,.89,.32,1.28) both;
+}
+
+@keyframes wcZoom {
+    0%   { transform: scale(0) rotate(-10deg); opacity: 0; }
+    60%  { transform: scale(1.15) rotate(2deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.wc-cover-sub {
+    font-size: 14px;
+    color: #3a86ff;
+    letter-spacing: 4px;
+    margin-top: 2px;
+    font-weight: 600;
+    animation: wcFade 1s ease-out .6s both;
+}
+
+.wc-cover-title {
+    font-size: 30px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 10px;
+    margin-top: 6px;
+    animation: wcSlide 1s ease-out .8s both;
+    text-shadow: 0 2px 10px rgba(0,0,0,.8);
+}
+
+@keyframes wcSlide {
+    0%   { transform: translateY(40px); opacity: 0; letter-spacing: 0; }
+    100% { transform: translateY(0); opacity: 1; letter-spacing: 10px; }
+}
+
+.wc-cover-hosts {
+    font-size: 17px;
+    color: #ccc;
+    margin-top: 14px;
+    animation: wcFade 1s ease-out 1.2s both;
+}
+
+.wc-cover-trophy {
+    font-size: 80px;
+    margin: 28px 0 8px;
+    animation: wcBounce 1s cubic-bezier(.18,.89,.32,1.28) 1.5s both,
+               wcTrophyGlow 2.5s ease-in-out 2.5s infinite;
+    line-height: 1;
+}
+
+@keyframes wcBounce {
+    0%   { transform: translateY(-120px) scale(0) rotate(-30deg); opacity: 0; }
+    60%  { transform: translateY(15px) scale(1.3) rotate(5deg); opacity: 1; }
+    100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
+}
+
+@keyframes wcTrophyGlow {
+    0%, 100% { filter: drop-shadow(0 0 12px rgba(255,214,10,.4)); }
+    50%      { filter: drop-shadow(0 0 35px rgba(255,214,10,.8)); }
+}
+
+@keyframes wcFade {
+    0%   { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.wc-cover-continue {
+    font-size: 13px;
+    color: #555;
+    margin-top: 24px;
+    animation: wcFade 1s ease-out 2.8s both,
+               wcBlink 1.5s ease-in-out 3.8s infinite;
+}
+
+@keyframes wcBlink {
+    0%, 100% { opacity: .3; }
+    50%      { opacity: .9; }
+}
+
+.wc-confetti {
+    position: absolute;
+    top: -20px;
+    animation: wcFall linear infinite;
+    pointer-events: none;
+}
+
+@keyframes wcFall {
+    0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(105vh) rotate(720deg); opacity: .4; }
+}
+
+.wc-cover-vs {
+    display: flex;
+    gap: 18px;
+    margin-top: 6px;
+    animation: wcFade .8s ease-out 2s both;
+}
+
+.wc-cover-vs span {
+    font-size: 22px;
+    filter: drop-shadow(0 0 6px rgba(255,255,255,.2));
+}
+
+/* =================================================================
+   响应式
+   ================================================================= */
+
+@media (max-width: 600px) {
+    .club-grid { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .club-chip { font-size: 11px; padding: 7px 3px; }
+    .wc-cover-2026  { font-size: 56px; letter-spacing: 4px; }
+    .wc-cover-title { font-size: 22px; letter-spacing: 6px; }
+    .wc-cover-trophy { font-size: 60px; }
+    .wc-cover-hosts { font-size: 14px; }
+}

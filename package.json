@@ -1,5 +1,5 @@
 {
-  "name": "football_game",
+  "name": "football-game",
   "version": "1.0.0",
   "description": "绿茵对决 · 足球游戏 - A football game with canvas rendering",
   "main": "dist/index.js",
