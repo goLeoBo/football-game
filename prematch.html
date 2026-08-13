@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>赛前匹配 · 绿茵对决</title>
+<style>
+/* ============================================================
+   主题变量：深空蓝 + 电光绿，现代扁平化
+   ============================================================ */
+:root {
+  --bg-deep: #050b1a;
+  --bg-mid:  #0a1a30;
+  --space-1: #071226;
+  --space-2: #0d2b45;
+  --space-3: #0a1f2f;
+  --lawn:    #123a2a;
+  --green:   #39ff88;
+  --green-soft: #7dffb0;
+  --cyan:    #49e0ff;
+  --ink:     #eaf7ff;
+  --ink-dim: #9fb6c9;
+  --card:    rgba(13, 32, 55, 0.72);
+  --card-line: rgba(125, 255, 176, 0.16);
+  --radius: 20px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--bg-deep);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ============================================================
+   背景：CSS 动画动态渐变草坪 + 粒子
+   ============================================================ */
+.bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(125deg, var(--space-1), var(--space-2), var(--space-3), var(--lawn), var(--space-2), var(--space-1));
+  background-size: 500% 500%;
+  animation: bgShift 26s ease-in-out infinite;
+}
+.bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 50% at 50% 118%, rgba(57, 255, 136, 0.20), transparent 70%),
+    radial-gradient(45% 40% at 50% -10%, rgba(73, 224, 255, 0.16), transparent 70%);
+  pointer-events: none;
+}
+@keyframes bgShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* 粒子画布 */
+#particles {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ============================================================
+   布局容器（手机优先，居中限宽）
+   ============================================================ */
+.app {
+  position: relative;
+  z-index: 2;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: calc(14px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 100vh;
+}
+
+/* ============================================================
+   顶栏
+   ============================================================ */
+header { text-align: center; padding-top: 2px; }
+header .kicker {
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: var(--green);
+  text-transform: uppercase;
+  opacity: .85;
+}
+header h1 {
+  font-size: clamp(22px, 6vw, 28px);
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-top: 4px;
+  background: linear-gradient(90deg, #eaf7ff, var(--green-soft));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+header .sub { font-size: 12px; color: var(--ink-dim); margin-top: 2px; }
+
+/* ============================================================
+   中央对阵信息卡（背景色随所选俱乐部动态切换）
+   ============================================================ */
+.versus {
+  position: relative;
+  border-radius: var(--radius);
+  padding: 24px 14px 22px;
+  overflow: hidden;
+  border: 1px solid var(--card-line);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: box-shadow .5s ease;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+}
+/* 背景双图层实现任意渐变间的平滑交叉淡入淡出 */
+.vbg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  transition: opacity .5s ease;
+}
+.vbg.base  { opacity: 1; background: linear-gradient(135deg, rgba(0, 104, 168, .95), rgba(0, 20, 45, .95)); }
+.vbg.fade  { opacity: 0; }
+.versus.light { border-color: rgba(0, 0, 0, 0.08); }
+.versus.light .team .tname,
+.versus.light .tinfo { color: #20303f; }
+.versus.light .vs { color: #00994a; text-shadow: 0 0 14px rgba(0, 153, 74, .45); }
+
+.vrow {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.team { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.crest {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+.crest.inter { background: linear-gradient(160deg, #0068a8 0%, #001a33 100%); }
+.crest.psg   { background: linear-gradient(160deg, #004170 0%, #a50044 100%); }
+.tname { font-size: 15px; font-weight: 700; letter-spacing: 1px; transition: color .5s ease; }
+.tinfo { font-size: 11px; color: rgba(234, 247, 255, 0.62); transition: color .5s ease; }
+
+.vs {
+  flex: 0 0 auto;
+  font-size: clamp(30px, 9vw, 40px);
+  font-weight: 900;
+  font-style: italic;
+  color: var(--green);
+  letter-spacing: 1px;
+  padding: 0 2px;
+  animation: vsPulse 1.6s ease-in-out infinite;
+  text-shadow: 0 0 10px rgba(57, 255, 136, 0.7);
+}
+@keyframes vsPulse {
+  0%, 100% { text-shadow: 0 0 8px rgba(57, 255, 136, 0.55); transform: scale(1); }
+  50%      { text-shadow: 0 0 24px rgba(57, 255, 136, 1), 0 0 46px rgba(57, 255, 136, 0.6); transform: scale(1.07); }
+}
+
+.themeTag {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: rgba(234, 247, 255, 0.72);
+}
+.themeTag b { color: var(--green-soft); font-weight: 700; }
+.versus.light .themeTag { color: rgba(32, 48, 63, 0.72); }
+.versus.light .themeTag b { color: #00994a; }
+
+/* ============================================================
+   分区标题
+   ============================================================ */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--ink-dim);
+}
+.section-title::before {
+  content: "";
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+.section-title .hint { font-size: 11px; font-weight: 400; color: var(--ink-dim); opacity: .7; margin-left: auto; }
+
+/* ============================================================
+   阵型选择（SVG 小球场）
+   ============================================================ */
+.formation-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.fcard {
+  position: relative;
+  border-radius: 16px;
+  padding: 12px 8px 10px;
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: transform .28s cubic-bezier(.34, 1.56, .64, 1),
+              box-shadow .28s ease, border-color .28s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.fcard:active { transform: scale(0.93); }
+.fcard.selected {
+  transform: scale(1.07);
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px rgba(57, 255, 136, .6), 0 10px 26px rgba(57, 255, 136, 0.22);
+  z-index: 3;
+}
+.fcard .fname {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--ink);
+}
+.fcard.selected .fname { color: var(--green); }
+.fcard svg { width: 100%; max-width: 92px; height: auto; }
+
+/* ============================================================
+   俱乐部选择区（横向滚动）
+   ============================================================ */
+.clubs-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 6px 2px 12px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.clubs-scroll::-webkit-scrollbar { display: none; }
+
+.club {
+  flex: 0 0 auto;
+  scroll-snap-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: transform .22s ease;
+}
+.club:active { transform: scale(0.9); }
+.badge {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+  background: #123;
+}
+.badge.dark-text { color: #22303c; }
+.club.selected .badge {
+  transform: scale(1.12);
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(57, 255, 136, .35), 0 8px 18px rgba(0, 0, 0, 0.4);
+}
+.club .cname { font-size: 11px; color: var(--ink-dim); text-align: center; white-space: nowrap; }
+.club.selected .cname { color: var(--green-soft); }
+
+/* ============================================================
+   开战按钮（霓虹呼吸边框）
+   ============================================================ */
+.battle {
+  margin-top: 2px;
+  width: 100%;
+  padding: 16px 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 8px;
+  text-indent: 8px;
+  color: #06180f;
+  background: linear-gradient(120deg, var(--green), var(--green-soft));
+  border: 2px solid var(--green);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform .12s ease;
+  animation: breath 2.2s ease-in-out infinite;
+}
+.battle:active { transform: scale(0.95); }
+@keyframes breath {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(57, 255, 136, .45), 0 0 18px rgba(57, 255, 136, .22);
+    border-color: var(--green);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(57, 255, 136, .9), 0 0 46px rgba(57, 255, 136, .5);
+    border-color: #c8ffe0;
+  }
+}
+
+/* 反馈提示浮层 */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 18vh;
+  transform: translateX(-50%) translateY(8px);
+  background: rgba(5, 11, 26, 0.9);
+  border: 1px solid var(--green);
+  color: var(--green-soft);
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s ease, transform .3s ease;
+  z-index: 50;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 360px) {
+  .crest { width: 52px; height: 52px; font-size: 13px; }
+  .tname { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+<canvas id="particles"></canvas>
+
+<div class="app">
+  <header>
+    <div class="kicker">PRE-MATCH · 绿茵对决</div>
+    <h1>赛前匹配</h1>
+    <div class="sub">选择你的阵型与主队配色，准备开战</div>
+  </header>
+
+  <!-- 中央对阵信息卡 -->
+  <section class="versus" id="versusCard">
+    <div class="vbg base" id="vbgBase"></div>
+    <div class="vbg fade" id="vbgFade"></div>
+
+    <div class="vrow">
+      <div class="team">
+        <div class="crest inter">INT</div>
+        <div class="tname">国际米兰</div>
+        <div class="tinfo">INTER</div>
+      </div>
+      <div class="vs">VS</div>
+      <div class="team">
+        <div class="crest psg">PSG</div>
+        <div class="tname">巴黎圣日耳曼</div>
+        <div class="tinfo">PARIS SG</div>
+      </div>
+    </div>
+
+    <div class="themeTag">主题配色 · <b id="themeName">国际米兰</b></div>
+  </section>
+
+  <!-- 阵型选择 -->
+  <div class="section-title">阵型选择<span class="hint">点击切换 · 4-3-3 默认</span></div>
+  <div class="formation-row" id="formationRow"></div>
+
+  <!-- 俱乐部选择 -->
+  <div class="section-title">俱乐部配色<span class="hint">左右滑动查看</span></div>
+  <div class="clubs-scroll" id="clubRow"></div>
+
+  <!-- 开战 -->
+  <button class="battle" id="btnBattle">开 战</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ============================================================
+   数据
+   ============================================================ */
+
+// 俱乐部代表色：bg 用于背景（颜色或渐变），glow 用于描边/光晕，darkText 表示浅色背景用深色文字
+const CLUBS = [
+  { name: '国际米兰',     short: '国米', bg: 'linear-gradient(135deg,#0068a8,#001a33)', glow: '#0068a8' },
+  { name: '皇家马德里',   short: '皇马', bg: 'linear-gradient(135deg,#ffffff,#e8e8e8)', glow: '#ffffff', darkText: true },
+  { name: '巴塞罗那',     short: '巴萨', bg: 'linear-gradient(135deg,#004d98,#a50044)', glow: '#a50044' },
+  { name: '拜仁慕尼黑',   short: '拜仁', bg: 'linear-gradient(135deg,#dc052d,#7a0016)', glow: '#dc052d' },
+  { name: '利物浦',       short: '红军', bg: 'linear-gradient(135deg,#c8102e,#6e0018)', glow: '#c8102e' },
+  { name: '曼城',         short: '曼城', bg: 'linear-gradient(135deg,#6cabdd,#1c2c5b)', glow: '#6cabdd' },
+  { name: '巴黎圣日耳曼', short: '巴黎', bg: 'linear-gradient(135deg,#004170,#a50044)', glow: '#a50044' },
+  { name: '尤文图斯',     short: '尤文', bg: 'linear-gradient(135deg,#111111,#4a4a4a)', glow: '#9aa0a6' },
+  { name: 'AC米兰',       short: '米兰', bg: 'linear-gradient(135deg,#fb090b,#000000)', glow: '#fb090b' },
+  { name: '阿森纳',       short: '枪手', bg: 'linear-gradient(135deg,#ef0107,#7c0010)', glow: '#ef0107' }
+];
+
+// 阵型站位（SVG 竖版小场，viewBox 0 0 100 140，上为进攻端）
+const FORMATIONS = {
+  '4-3-3': { fwd: [20, 50, 80], mid: [20, 50, 80], def: [12, 38, 62, 88] },
+  '4-4-2': { fwd: [35, 65],       mid: [12, 38, 62, 88], def: [12, 38, 62, 88] },
+  '3-5-2': { fwd: [35, 65],       mid: [12, 30, 50, 70, 88], def: [25, 50, 75] }
+};
+const FORM_ORDER = ['4-3-3', '4-4-2', '3-5-2'];
+
+let selectedFormation = '4-3-3';
+let selectedClub = CLUBS[0];           // 默认国际米兰（蓝黑）
+
+/* ============================================================
+   震动反馈
+   ============================================================ */
+function vibrate(ms) {
+  try { if (navigator.vibrate) navigator.vibrate(ms || 12); } catch (e) {}
+}
+
+// 所有可交互元素按压即震动
+document.addEventListener('pointerdown', e => {
+  if (e.target.closest('.club, .fcard, .battle')) vibrate(12);
+});
+
+/* ============================================================
+   提示浮层
+   ============================================================ */
+const toastEl = document.getElementById('toast');
+let toastTimer = null;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1400);
+}
+
+/* ============================================================
+   中央对阵卡：背景色平滑切换（双图层交叉淡入淡出）
+   ============================================================ */
+const vsCard = document.getElementById('versusCard');
+const vbgBase = document.getElementById('vbgBase');
+const vbgFade = document.getElementById('vbgFade');
+const themeName = document.getElementById('themeName');
+
+function applyTheme(club, instant) {
+  const light = !!club.darkText;
+  const dur = instant ? 0 : 300;
+  vbgFade.style.transitionDuration = dur + 'ms';
+  vbgFade.style.background = club.bg;
+  vbgFade.style.opacity = '1';
+  setTimeout(() => {
+    vbgBase.style.background = club.bg;
+    vbgFade.style.opacity = '0';
+  }, dur + 20);
+  vsCard.style.boxShadow = light
+    ? '0 14px 40px rgba(0,0,0,0.28)'
+    : `0 14px 40px rgba(0,0,0,0.45), 0 0 32px ${club.glow}44`;
+  vsCard.classList.toggle('light', light);
+  themeName.textContent = club.name;
+}
+
+/* ============================================================
+   渲染阵型小场（SVG）
+   ============================================================ */
+function dot(x, y, color) {
+  return `<circle cx="${x}" cy="${y}" r="3.2" fill="${color}"
+    style="filter: drop-shadow(0 0 2.4px ${color})" />`;
+}
+
+function fieldSVG(form) {
+  const f = FORMATIONS[form];
+  const dots = [];
+  dots.push(dot(50, 128, '#49e0ff'));                       // 门将（青）
+  f.def.forEach(x => dots.push(dot(x, 98, '#39ff88')));
+  f.mid.forEach(x => dots.push(dot(x, 58, '#eafff1')));
+  f.fwd.forEach(x => dots.push(dot(x, 22, '#ffd166')));
+  return `
+  <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g-${form}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#1c5a38"/>
+        <stop offset="1" stop-color="#0d2b1d"/>
+      </linearGradient>
+    </defs>
+    <rect x="2" y="2" width="96" height="136" rx="8" fill="url(#g-${form})" stroke="rgba(125,255,176,.5)" stroke-width="1.6"/>
+    <line x1="2" y1="70" x2="98" y2="70" stroke="rgba(125,255,176,.4)" stroke-width="1"/>
+    <circle cx="50" cy="70" r="14" fill="none" stroke="rgba(125,255,176,.4)" stroke-width="1"/>
+    <rect x="28" y="2" width="44" height="16" rx="2" fill="none" stroke="rgba(125,255,176,.4)" stroke-width="1"/>
+    <rect x="28" y="122" width="44" height="16" rx="2" fill="none" stroke="rgba(125,255,176,.4)" stroke-width="1"/>
+    ${dots.join('')}
+  </svg>`;
+}
+
+function renderFormations() {
+  const row = document.getElementById('formationRow');
+  row.innerHTML = FORM_ORDER.map(f => `
+    <div class="fcard${f === selectedFormation ? ' selected' : ''}" data-form="${f}">
+      ${fieldSVG(f)}
+      <div class="fname">${f}</div>
+    </div>`).join('');
+}
+
+/* ============================================================
+   渲染俱乐部横向列表
+   ============================================================ */
+function renderClubs() {
+  const row = document.getElementById('clubRow');
+  row.innerHTML = CLUBS.map(c => `
+    <div class="club${c === selectedClub ? ' selected' : ''}" data-club="${c.name}">
+      <div class="badge${c.darkText ? ' dark-text' : ''}"
+           style="background:${c.bg}; border-color:${c.glow}66">${c.short}</div>
+      <div class="cname">${c.name}</div>
+    </div>`).join('');
+}
+
+/* ============================================================
+   事件委托
+   ============================================================ */
+document.getElementById('formationRow').addEventListener('click', e => {
+  const card = e.target.closest('.fcard');
+  if (!card) return;
+  selectedFormation = card.dataset.form;
+  document.querySelectorAll('.fcard').forEach(c => c.classList.toggle('selected', c === card));
+  toast('阵型 · ' + selectedFormation);
+});
+
+document.getElementById('clubRow').addEventListener('click', e => {
+  const clubEl = e.target.closest('.club');
+  if (!clubEl) return;
+  selectedClub = CLUBS.find(c => c.name === clubEl.dataset.club);
+  document.querySelectorAll('.club').forEach(c => c.classList.toggle('selected', c === clubEl));
+  applyTheme(selectedClub, false);
+  toast('配色 · ' + selectedClub.name);
+});
+
+document.getElementById('btnBattle').addEventListener('click', () => {
+  vibrate([30, 20, 40]);
+  toast(`⚽ ${selectedFormation} · 国际米兰 VS 巴黎圣日耳曼 · 开战！`);
+});
+
+/* ============================================================
+   背景粒子（缓慢飘移 + 呼吸闪烁）
+   ============================================================ */
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, parts = [];
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  const n = Math.min(70, Math.round(window.innerWidth * window.innerHeight / 16000));
+  parts = [];
+  for (let i = 0; i < n; i++) {
+    const green = Math.random() < 0.62;
+    parts.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 2.2 + 0.5,
+      vx: (Math.random() - 0.5) * 0.16,
+      vy: (Math.random() - 0.5) * 0.16,
+      a: Math.random() * 0.5 + 0.16,
+      ph: Math.random() * Math.PI * 2,
+      green
+    });
+  }
+}
+window.addEventListener('resize', resize);
+
+function loop(now) {
+  ctx.clearRect(0, 0, W, H);
+  for (const p of parts) {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < -12) p.x = W + 12; else if (p.x > W + 12) p.x = -12;
+    if (p.y < -12) p.y = H + 12; else if (p.y > H + 12) p.y = -12;
+    const tw = 0.5 + 0.5 * Math.sin(now / 900 + p.ph);
+    const alpha = p.a * tw;
+    ctx.beginPath();
+    ctx.fillStyle = p.green
+      ? `rgba(125,255,176,${alpha})`
+      : `rgba(73,224,255,${alpha})`;
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   初始化
+   ============================================================ */
+resize();
+renderFormations();
+renderClubs();
+applyTheme(selectedClub, true);
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

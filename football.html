@@ -109,6 +109,17 @@
   .wc-kmatch-user{border-color:#ffd60a;box-shadow:0 0 8px rgba(255,214,10,.3)}
   .wc-kmatch div{padding:2px 0;color:#ccc}
   .wc-win{color:#7CFC00!important;font-weight:800}
+  /* 队徽：40x40 统一尺寸，保持比例，圆角；img 加载失败时隐藏留 fallback */
+  .flag{width:40px;height:40px;object-fit:contain;border-radius:6px;vertical-align:middle;flex:0 0 auto}
+  .avatar{width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff;flex:0 0 auto;letter-spacing:0}
+  .fixture-row{display:flex;align-items:center;gap:8px}
+  .fixture-row .t{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+  .fixture-row .t.right{justify-content:flex-end}
+  .fixture-row .vs{color:#888;font-size:12px;flex:0 0 auto}
+  .ko-line{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 0;color:#ccc}
+  .ko-line .t{display:flex;align-items:center;gap:8px;min-width:0}
+  .ko-line b{color:#fff;margin-left:auto;flex:0 0 auto}
+  .nm{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .wc-trophy{margin:18px 0;text-align:center}
   .wc-scroll{max-height:62vh;overflow-y:auto;padding:0 4px}
   /* ====== 世界杯封面动画 ====== */
@@ -142,6 +153,62 @@
     .wc-cover-trophy{font-size:60px}
     .wc-cover-hosts{font-size:14px}
   }
+  /* ====== 赛前匹配界面 ====== */
+  #prematch{position:fixed;inset:0;z-index:20;overflow-y:auto;overflow-x:hidden;background:#050b1a;color:#eaf7ff;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  #prematch.hidden{display:none}
+  .pm-bg{position:fixed;inset:0;z-index:0;background:linear-gradient(125deg,#071226,#0d2b45,#0a1f2f,#123a2a,#0d2b45,#071226);background-size:500% 500%;animation:pmBg 26s ease-in-out infinite}
+  @keyframes pmBg{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+  #pm-particles{position:fixed;inset:0;z-index:1;pointer-events:none}
+  .pm-app{position:relative;z-index:2;max-width:480px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 16px calc(22px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:18px;min-height:100vh}
+  .pm-head{text-align:center;padding-top:2px}
+  .pm-kicker{font-size:11px;letter-spacing:4px;color:#39ff88;text-transform:uppercase;opacity:.85}
+  .pm-h1{font-size:26px;font-weight:800;letter-spacing:2px;margin-top:4px;background:linear-gradient(90deg,#eaf7ff,#7dffb0);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+  .pm-sub{font-size:12px;color:#9fb6c9;margin-top:2px}
+  .pm-versus{position:relative;border-radius:20px;padding:24px 14px 22px;overflow:hidden;border:1px solid rgba(125,255,176,.16);transition:box-shadow .5s ease;box-shadow:0 14px 40px rgba(0,0,0,.45)}
+  .pm-vbg{position:absolute;inset:0;z-index:0;transition:opacity .3s ease}
+  .pm-vbg-base{opacity:1;background:linear-gradient(135deg,#0068a8,#001a33)}
+  .pm-vbg-fade{opacity:0}
+  .pm-versus.pm-light{border-color:rgba(0,0,0,.08)}
+  .pm-versus.pm-light .pm-tname,.pm-versus.pm-light .pm-tinfo,.pm-versus.pm-light .pm-theme{color:#20303f}
+  .pm-versus.pm-light .pm-theme b{color:#00994a}
+  .pm-vrow{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .pm-team{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .pm-crest{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;letter-spacing:1px;color:#fff;border:2px solid rgba(255,255,255,.28);box-shadow:0 6px 16px rgba(0,0,0,.35);background:#123;transition:background .3s ease}
+  .pm-tname{font-size:15px;font-weight:700;letter-spacing:1px;transition:color .5s ease}
+  .pm-tinfo{font-size:11px;color:rgba(234,247,255,.62);transition:color .5s ease}
+  .pm-vs{flex:0 0 auto;font-size:34px;font-weight:900;font-style:italic;color:#39ff88;letter-spacing:1px;animation:pmVs 1.6s ease-in-out infinite;text-shadow:0 0 10px rgba(57,255,136,.7)}
+  @keyframes pmVs{0%,100%{text-shadow:0 0 8px rgba(57,255,136,.55);transform:scale(1)}50%{text-shadow:0 0 24px rgba(57,255,136,1),0 0 46px rgba(57,255,136,.6);transform:scale(1.07)}}
+  .pm-theme{position:relative;z-index:1;margin-top:16px;text-align:center;font-size:11px;letter-spacing:1px;color:rgba(234,247,255,.72)}
+  .pm-theme b{color:#7dffb0;font-weight:700}
+  .pm-sec-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:2px;color:#9fb6c9}
+  .pm-sec-title::before{content:"";width:4px;height:14px;border-radius:2px;background:#39ff88;box-shadow:0 0 8px #39ff88}
+  .pm-hint{font-size:11px;font-weight:400;color:#9fb6c9;opacity:.7;margin-left:auto}
+  .pm-formation-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .pm-fcard{position:relative;border-radius:16px;padding:12px 8px 10px;background:rgba(13,32,55,.72);border:1px solid rgba(125,255,176,.16);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;transition:transform .28s cubic-bezier(.34,1.56,.64,1),box-shadow .28s ease,border-color .28s ease}
+  .pm-fcard:active{transform:scale(.93)}
+  .pm-fcard.selected{transform:scale(1.07);border-color:#39ff88;box-shadow:0 0 0 1px rgba(57,255,136,.6),0 10px 26px rgba(57,255,136,.22);z-index:3}
+  .pm-fcard svg{width:100%;max-width:92px;height:auto}
+  .pm-fname{font-size:13px;font-weight:800;letter-spacing:1px;color:#eaf7ff}
+  .pm-fcard.selected .pm-fname{color:#39ff88}
+  .pm-clubs-scroll{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 12px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .pm-clubs-scroll::-webkit-scrollbar{display:none}
+  .pm-club{flex:0 0 auto;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:transform .22s ease}
+  .pm-club:active{transform:scale(.9)}
+  .pm-badge{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;letter-spacing:1px;color:#fff;border:2px solid rgba(255,255,255,.22);box-shadow:0 6px 14px rgba(0,0,0,.35);transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;background:#123;overflow:hidden}
+  .pm-badge.pm-dark{color:#22303c}
+  .pm-badge-img{width:100%;height:100%;object-fit:contain;padding:7px;box-sizing:border-box;display:block}
+  .pm-badge-text{line-height:1}
+  .pm-club.selected .pm-badge{transform:scale(1.12);border-color:#39ff88;box-shadow:0 0 0 3px rgba(57,255,136,.35),0 8px 18px rgba(0,0,0,.4)}
+  .pm-cname{font-size:11px;color:#9fb6c9;text-align:center;white-space:nowrap}
+  .pm-club.selected .pm-cname{color:#7dffb0}
+  .pm-battle{margin-top:2px;width:100%;padding:16px 0;font-size:18px;font-weight:800;letter-spacing:8px;text-indent:8px;color:#06180f;background:linear-gradient(120deg,#39ff88,#7dffb0);border:2px solid #39ff88;border-radius:999px;cursor:pointer;transition:transform .12s ease;animation:pmBreath 2.2s ease-in-out infinite}
+  .pm-battle:active{transform:scale(.95)}
+  @keyframes pmBreath{0%,100%{box-shadow:0 0 6px rgba(57,255,136,.45),0 0 18px rgba(57,255,136,.22);border-color:#39ff88}50%{box-shadow:0 0 18px rgba(57,255,136,.9),0 0 46px rgba(57,255,136,.5);border-color:#c8ffe0}}
+  .pm-more{width:100%;padding:12px 0;font-size:14px;font-weight:700;letter-spacing:3px;color:#9fb6c9;background:rgba(13,32,55,.6);border:1px solid rgba(125,255,176,.22);border-radius:999px;cursor:pointer;transition:transform .12s ease}
+  .pm-more:active{transform:scale(.96)}
+  .pm-toast{position:fixed;left:50%;bottom:18vh;transform:translateX(-50%) translateY(8px);background:rgba(5,11,26,.9);border:1px solid #39ff88;color:#7dffb0;font-size:13px;padding:8px 16px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease;z-index:50}
+  .pm-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media(max-width:360px){.pm-crest{width:52px;height:52px;font-size:13px}.pm-tname{font-size:13px}}
 </style>
 </head>
 <body>
@@ -217,7 +284,6 @@
       </div>
       <div class="btns">
         <button class="btn btn-primary" data-mode="match">友谊赛 11v11</button>
-        <button class="btn btn-secondary" data-mode="penalty">点球大战</button>
       </div>
       <button class="btn" data-mode="worldcup" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#ffd60a,#ff8c00);color:#222;font-weight:800">🌍 2026 世界杯 · 争夺大力神杯</button>
       <div class="keys">
@@ -235,6 +301,48 @@
     </div>
   </div>
 </div>
+
+  <!-- ====== 赛前匹配界面 ====== -->
+  <div id="prematch">
+    <div class="pm-bg"></div>
+    <canvas id="pm-particles"></canvas>
+    <div class="pm-app">
+      <div class="pm-head">
+        <div class="pm-kicker">PRE-MATCH · 绿茵对决</div>
+        <div class="pm-h1">赛前匹配</div>
+        <div class="pm-sub">选择你的阵型与主队，准备开战</div>
+      </div>
+
+      <div class="pm-versus" id="pmVersus">
+        <div class="pm-vbg pm-vbg-base" id="pmVbgBase"></div>
+        <div class="pm-vbg pm-vbg-fade" id="pmVbgFade"></div>
+        <div class="pm-vrow">
+          <div class="pm-team">
+            <div class="pm-crest" id="pmCrestL">国米</div>
+            <div class="pm-tname" id="pmNameL">国际米兰</div>
+            <div class="pm-tinfo" id="pmInfoL">主队 · 你操控</div>
+          </div>
+          <div class="pm-vs">VS</div>
+          <div class="pm-team">
+            <div class="pm-crest" id="pmCrestR">巴黎</div>
+            <div class="pm-tname" id="pmNameR">巴黎圣日耳曼</div>
+            <div class="pm-tinfo" id="pmInfoR">对手</div>
+          </div>
+        </div>
+        <div class="pm-theme">主题配色 · <b id="pmThemeName">国际米兰</b></div>
+      </div>
+
+      <div class="pm-sec-title">阵型选择<span class="pm-hint">点击切换 · 4-3-3 默认</span></div>
+      <div class="pm-formation-row" id="pmFormationRow"></div>
+
+      <div class="pm-sec-title">俱乐部配色<span class="pm-hint">左右滑动 · 选中为主队</span></div>
+      <div class="pm-clubs-scroll" id="pmClubRow"></div>
+
+      <button class="pm-battle" id="pmBattle">开 战</button>
+      <button class="pm-more" id="pmMore">🌍 世界杯模式</button>
+    </div>
+    <div class="pm-toast" id="pmToast"></div>
+  </div>
 
 <script>
 (() => {
@@ -1823,7 +1931,7 @@ function endMatch(){
   showPanel(`<h1>比赛结束</h1><div class="tag">FULL TIME</div>
     <div class="big ${cls}">${res}</div>
     <p style="font-size:22px;color:#fff">红队 ${score[TEAM_RED]} : ${score[TEAM_BLUE]} 蓝队</p>
-    <div class="btns"><button class="btn btn-primary" data-mode="match">再来一场</button><button class="btn btn-secondary" data-mode="penalty">点球大战</button><button class="btn btn-ghost" data-mode="menu">返回主菜单</button></div>`);
+    <div class="btns"><button class="btn btn-primary" data-mode="match">再来一场</button><button class="btn btn-ghost" data-mode="menu">返回主菜单</button></div>`);
 }
 
 // ====== 点球大战 ======
@@ -1934,7 +2042,7 @@ function endPenalty(){
   showPanel(`<h1>点球大战结束</h1><div class="tag">PENALTY SHOOTOUT</div>
     <div class="big ${cls}">${res}</div>
     <p style="font-size:22px;color:#fff">红队 ${penScore[0]} : ${penScore[1]} 蓝队</p>
-    <div class="btns"><button class="btn btn-secondary" data-mode="penalty">再战一场</button><button class="btn btn-primary" data-mode="match">友谊赛</button><button class="btn btn-ghost" data-mode="menu">返回主菜单</button></div>`);
+    <div class="btns"><button class="btn btn-primary" data-mode="match">友谊赛</button><button class="btn btn-ghost" data-mode="menu">返回主菜单</button></div>`);
 }
 function renderPenHUD(){
   const hud=document.getElementById('penHUD');
@@ -3348,6 +3456,140 @@ function showPanel(html){
 }
 function hideOverlay(){ document.getElementById('overlay').classList.add('hidden'); }
 
+// ====== 赛前匹配界面 ======
+// 俱乐部代表色（bg: 背景色，dark: 浅色背景用深色文字）
+const PM_CLUBS = [
+  {name:'国际米兰',short:'国米',bg:'linear-gradient(135deg,#0068a8,#001a33)',dark:false},
+  {name:'皇家马德里',short:'皇马',bg:'linear-gradient(135deg,#ffffff,#e8e8e8)',dark:true},
+  {name:'巴塞罗那',short:'巴萨',bg:'linear-gradient(135deg,#004d98,#a50044)',dark:false},
+  {name:'拜仁慕尼黑',short:'拜仁',bg:'linear-gradient(135deg,#dc052d,#7a0016)',dark:false},
+  {name:'利物浦',short:'红军',bg:'linear-gradient(135deg,#c8102e,#6e0018)',dark:false},
+  {name:'曼城',short:'曼城',bg:'linear-gradient(135deg,#6cabdd,#1c2c5b)',dark:false},
+  {name:'巴黎圣日耳曼',short:'巴黎',bg:'linear-gradient(135deg,#004170,#a50044)',dark:false},
+  {name:'尤文图斯',short:'尤文',bg:'linear-gradient(135deg,#111111,#4a4a4a)',dark:false},
+  {name:'AC米兰',short:'米兰',bg:'linear-gradient(135deg,#fb090b,#000000)',dark:false},
+  {name:'阿森纳',short:'枪手',bg:'linear-gradient(135deg,#ef0107,#7c0010)',dark:false}
+];
+// 阵型站位（SVG viewBox 0 0 100 140，上为进攻端）
+const PM_FORMATIONS = {
+  '4-3-3':{fwd:[20,50,80],mid:[20,50,80],def:[12,38,62,88]},
+  '4-4-2':{fwd:[35,65],mid:[12,38,62,88],def:[12,38,62,88]},
+  '3-5-2':{fwd:[35,65],mid:[12,30,50,70,88],def:[25,50,75]}
+};
+let pmSelClub = PM_CLUBS[0];
+
+function pmVibrate(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms||12); }catch(e){} }
+document.addEventListener('pointerdown', e=>{
+  if(e.target.closest && e.target.closest('.pm-club,.pm-fcard,.pm-battle,.pm-more')) pmVibrate(12);
+});
+
+function pmToast(msg){
+  const t=document.getElementById('pmToast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(pmToast._t); pmToast._t=setTimeout(()=>t.classList.remove('show'),1400);
+}
+
+function pmDot(x,y,c){ return `<circle cx="${x}" cy="${y}" r="3.2" fill="${c}" style="filter:drop-shadow(0 0 2.4px ${c})"/>`; }
+function pmFieldSVG(f){
+  const d=PM_FORMATIONS[f], dots=[];
+  dots.push(pmDot(50,128,'#49e0ff'));
+  d.def.forEach(x=>dots.push(pmDot(x,98,'#39ff88')));
+  d.mid.forEach(x=>dots.push(pmDot(x,58,'#eafff1')));
+  d.fwd.forEach(x=>dots.push(pmDot(x,22,'#ffd166')));
+  return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="pmg-${f}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c5a38"/><stop offset="1" stop-color="#0d2b1d"/></linearGradient></defs><rect x="2" y="2" width="96" height="136" rx="8" fill="url(#pmg-${f})" stroke="rgba(125,255,176,.5)" stroke-width="1.6"/><line x1="2" y1="70" x2="98" y2="70" stroke="rgba(125,255,176,.4)"/><circle cx="50" cy="70" r="14" fill="none" stroke="rgba(125,255,176,.4)"/><rect x="28" y="2" width="44" height="16" rx="2" fill="none" stroke="rgba(125,255,176,.4)"/><rect x="28" y="122" width="44" height="16" rx="2" fill="none" stroke="rgba(125,255,176,.4)"/>${dots.join('')}</svg>`;
+}
+function pmRenderFormations(){
+  const row=document.getElementById('pmFormationRow');
+  row.innerHTML=['4-3-3','4-4-2','3-5-2'].map(f=>`<div class="pm-fcard${f===selectedFormation?' selected':''}" data-form="${f}">${pmFieldSVG(f)}<div class="pm-fname">${f}</div></div>`).join('');
+}
+function pmRenderClubs(){
+  const row=document.getElementById('pmClubRow');
+  row.innerHTML=PM_CLUBS.map(c=>{
+    // 队徽：优先俱乐部 png 队徽（jsDelivr），失败回退首字母文字
+    const logo=CLUB_LOGO[c.name];
+    const img=logo
+      ? `<img class="pm-badge-img" src="${encodeURI(CLUB_LOGO_BASE+logo)}" alt="${c.name}" loading="lazy" onerror="this.remove();this.nextElementSibling.style.display='flex'">`
+      : '';
+    const txt=`<span class="pm-badge-text" style="${img?'display:none':''}">${c.short}</span>`;
+    return `<div class="pm-club${c===pmSelClub?' selected':''}" data-club="${c.name}"><div class="pm-badge${c.dark?' pm-dark':''}" style="background:${c.bg}">${img}${txt}</div><div class="pm-cname">${c.name}</div></div>`;
+  }).join('');
+}
+function pmApplyTheme(club,instant){
+  const light=!!club.dark, dur=instant?0:300;
+  const fade=document.getElementById('pmVbgFade'), base=document.getElementById('pmVbgBase');
+  fade.style.transitionDuration=dur+'ms'; fade.style.background=club.bg; fade.style.opacity='1';
+  setTimeout(()=>{ base.style.background=club.bg; fade.style.opacity='0'; }, dur+20);
+  document.getElementById('pmVersus').classList.toggle('pm-light',light);
+  document.getElementById('pmThemeName').textContent=club.name;
+}
+// 依据当前 redClub/blueClub/pmSelClub 刷新中央对阵卡与主题（不重新抽签）
+function pmSyncFromState(){
+  const info=PM_CLUBS.find(c=>c.name===redClub.name)||pmSelClub;
+  document.getElementById('pmCrestL').textContent=info.short;
+  document.getElementById('pmCrestL').style.background=info.bg;
+  document.getElementById('pmCrestL').classList.toggle('pm-dark',!!info.dark);
+  document.getElementById('pmNameL').textContent=redClub.name;
+  document.getElementById('pmInfoL').textContent='主队 · 你操控';
+  const opp=PM_CLUBS.find(c=>c.name===blueClub.name)||PM_CLUBS[0];
+  document.getElementById('pmCrestR').textContent=opp.short;
+  document.getElementById('pmCrestR').style.background=opp.bg;
+  document.getElementById('pmCrestR').classList.toggle('pm-dark',!!opp.dark);
+  document.getElementById('pmNameR').textContent=blueClub.name;
+  pmApplyTheme(info,false);
+}
+// 选中主队：左队为该队，对手随机；同步游戏内 redClub/blueClub
+function pmPickClub(name){
+  const found=PM_CLUBS.find(c=>c.name===name); if(!found) return;
+  pmSelClub=found;
+  pickClub(found.name);              // 设置 redClub + 随机 blueClub
+  pmSyncFromState();
+}
+// 打开赛前匹配界面
+function showPrematch(){
+  teamMode='club';                  // prematch 固定为俱乐部选主队模式
+  pmRenderFormations(); pmRenderClubs();
+  document.getElementById('prematch').classList.remove('hidden');
+  document.getElementById('overlay').classList.add('hidden');
+  if(!redClub || !blueClub) pmPickClub(pmSelClub.name);  // 首次：抽签
+  else pmSyncFromState();                                // 返回：保持对阵不变
+  startPM_Particles();
+}
+// 关闭赛前匹配界面
+function hidePrematch(){ document.getElementById('prematch').classList.add('hidden'); }
+
+// 背景粒子（缓慢飘移 + 呼吸闪烁）
+function startPM_Particles(){
+  const canvas=document.getElementById('pm-particles'), ctx=canvas.getContext('2d');
+  if(startPM_Particles._on) return;
+  let W=0,H=0,parts=[];
+  function resize(){
+    W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight;
+    const n=Math.min(70,Math.round(window.innerWidth*window.innerHeight/16000));
+    parts=[];
+    for(let i=0;i<n;i++){
+      const green=Math.random()<0.62;
+      parts.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*2.2+0.5,vx:(Math.random()-0.5)*0.16,vy:(Math.random()-0.5)*0.16,a:Math.random()*0.5+0.16,ph:Math.random()*Math.PI*2,green});
+    }
+  }
+  window.addEventListener('resize',resize);
+  function loop(now){
+    if(document.getElementById('prematch').classList.contains('hidden')){ requestAnimationFrame(loop); return; }
+    ctx.clearRect(0,0,W,H);
+    for(const p of parts){
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<-12)p.x=W+12; else if(p.x>W+12)p.x=-12;
+      if(p.y<-12)p.y=H+12; else if(p.y>H+12)p.y=-12;
+      const alpha=p.a*(0.5+0.5*Math.sin(now/900+p.ph));
+      ctx.beginPath();
+      ctx.fillStyle=p.green?`rgba(125,255,176,${alpha})`:`rgba(73,224,255,${alpha})`;
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+    }
+    requestAnimationFrame(loop);
+  }
+  resize(); requestAnimationFrame(loop);
+  startPM_Particles._on=true;
+}
+
 // ====== 更新分发 ======
 function update(dt){
   if(mode==='match'){
@@ -3444,7 +3686,7 @@ function showMenu(){
   h+=forms.map(f=>chip(selectedFormation===f[0],f[0],f[1],'data-form')).join('');
   h+=`</div></div><div class="sel-group"><div class="sel-label">比赛时长</div><div class="sel-btns" id="timeBtns">`;
   h+=times.map(t=>chip(selectedTime===t[0],t[0],t[1],'data-time')).join('');
-  h+=`</div></div><div class="btns"><button class="btn btn-primary" data-mode="match">友谊赛 11v11</button><button class="btn btn-secondary" data-mode="penalty">点球大战</button></div><button class="btn" data-mode="worldcup" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#ffd60a,#ff8c00);color:#222;font-weight:800">🌍 2026 世界杯 · 争夺大力神杯</button>`;
+  h+=`</div></div><div class="btns"><button class="btn btn-primary" data-mode="match">友谊赛 11v11</button></div><button class="btn" data-mode="worldcup" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#ffd60a,#ff8c00);color:#222;font-weight:800">🌍 2026 世界杯 · 争夺大力神杯</button>`;
   h+=`<div class="keys"><div><b>↑↓←→</b>移动</div><div><b>空格</b>射门</div><div><b>WASD</b>移动</div><div><b>Shift</b>传球</div><div><b>Q</b>长传</div><div><b>X</b>切换队员</div><div><b>Z</b>疾跑</div><div><b>P</b>暂停</div></div>`;
   h+=`<div class="small">俱乐部：皇马/巴萨/拜仁/利物浦/曼城/巴黎/尤文/米兰/国米/阿森纳<br>角色色环：<span style="color:#7CFC00">■</span>后卫 · <span style="color:#ffd60a">■</span>中场 · <span style="color:#fff">■</span>前锋<br>长传：按 Q 瞄准，方向键调节落点，虚线预览轨迹<br>移动端：左下摇杆移动，右下按钮传球/长传/射门</div>`;
   showPanel(h); updateMatchupPreview();
@@ -3495,6 +3737,65 @@ function ntPlayers(name){
 function ntRating(name){
   const t = NATIONAL_TEAMS.find(x=>x.name===name);
   return t ? t.rating : 70;
+}
+
+// ====== 队徽映射（在线 SVG）======
+// 国家队国旗：flagcdn 稳定直链（ISO 3166-1 alpha-2，均为真实 SVG）
+const NT_FLAG = {
+  '巴西':'br','阿根廷':'ar','法国':'fr','英格兰':'gb-eng','西班牙':'es','葡萄牙':'pt',
+  '德国':'de','意大利':'it','荷兰':'nl','比利时':'be','克罗地亚':'hr','墨西哥':'mx',
+  '乌拉圭':'uy','哥伦比亚':'co','美国':'us','瑞士':'ch','日本':'jp','摩洛哥':'ma',
+  '丹麦':'dk','塞内加尔':'sn','塞尔维亚':'rs','瑞典':'se','波兰':'pl','威尔士':'gb-wls',
+  '韩国':'kr','土耳其':'tr','伊朗':'ir','智利':'cl','厄瓜多尔':'ec','乌克兰':'ua',
+  '尼日利亚':'ng','秘鲁':'pe','奥地利':'at','捷克':'cz','巴拉圭':'py','喀麦隆':'cm',
+  '埃及':'eg','加拿大':'ca','突尼斯':'tn','阿尔及利亚':'dz','科特迪瓦':'ci','哥斯达黎加':'cr',
+  '澳大利亚':'au','沙特阿拉伯':'sa','南非':'za','卡塔尔':'qa','牙买加':'jm','洪都拉斯':'hn'
+};
+// 俱乐部：无可靠的在线 SVG 直链源（fclogo 为 webp、svgrepo 限流），
+// 改用 football-logos 仓库的 png 队徽，经 jsDelivr CDN 直链（稳定可访问）。
+const CLUB_LOGO_BASE = 'https://cdn.jsdelivr.net/gh/luukhopman/football-logos@master/logos/';
+const CLUB_LOGO = {
+  '皇家马德里': 'Spain - LaLiga/Real Madrid.png',
+  '巴塞罗那': 'Spain - LaLiga/FC Barcelona.png',
+  '拜仁慕尼黑': 'Germany - Bundesliga/Bayern Munich.png',
+  '利物浦': 'England - Premier League/Liverpool FC.png',
+  '曼城': 'England - Premier League/Manchester City.png',
+  '巴黎圣日耳曼': 'France - Ligue 1/Paris Saint-Germain.png',
+  '尤文图斯': 'Italy - Serie A/Juventus FC.png',
+  'AC米兰': 'Italy - Serie A/AC Milan.png',
+  '国际米兰': 'Italy - Serie A/Inter Milan.png',
+  '阿森纳': 'England - Premier League/Arsenal FC.png'
+};
+const FLAG_BASE = 'https://flagcdn.com/';
+
+// 头像配色池：按名称哈希稳定取色，保证同一队每次颜色一致
+const AVATAR_COLORS = ['#0068a8','#a50044','#c8102e','#6cabdd','#dc052d','#1c2c5b','#007a5e','#8a5a00','#5b2d8e','#0a7a8a'];
+function avatarColor(name){
+  let h=0; for(let i=0;i<name.length;i++){ h=(h*31+name.charCodeAt(i))>>>0; }
+  return AVATAR_COLORS[h%AVATAR_COLORS.length];
+}
+// 队徽 HTML：优先俱乐部 png → 国旗 svg → 首字母圆形头像 fallback
+// （img 加载失败时 onerror 隐藏并露出头像）
+function flagHTML(name, avatarText){
+  const club = CLUB_LOGO[name];
+  const iso = NT_FLAG[name];
+  const src = club ? encodeURI(CLUB_LOGO_BASE + club) : (iso ? (FLAG_BASE + iso + '.svg') : '');
+  if(src){
+    return `<span class="t"><span class="avatar" style="background:${avatarColor(name)};display:none">${avatarText}</span><img class="flag" src="${src}" alt="${name}" loading="lazy" onerror="this.style.display='none';this.previousElementSibling.style.display='inline-flex'"></span>`;
+  }
+  return `<span class="avatar" style="background:${avatarColor(name)}">${avatarText}</span>`;
+}
+function initialOf(name){
+  // 中文取首字；英文/其它取首字母大写
+  return (name||'?').trim().charAt(0).toUpperCase();
+}
+// 对阵行：左队名 + 队徽，中间 VS，右队名 + 队徽
+function fixtureRow(a, b){
+  return `<div class="fixture-row">` +
+    `<span class="t">${flagHTML(a, initialOf(a))}<span class="nm">${a}</span></span>` +
+    `<span class="vs">VS</span>` +
+    `<span class="t right"><span class="nm">${b}</span>${flagHTML(b, initialOf(b))}</span>` +
+  `</div>`;
 }
 
 let wc = null;
@@ -3658,7 +3959,7 @@ function showGroupStandings(){
     h+=`<div class="wc-fixtures"><div class="sel-label">本轮对阵</div>`;
     userGroup.fixtures[round].forEach(m=>{
       const isUser=m[0]===wc.userTeam||m[1]===wc.userTeam;
-      h+=`<div class="wc-fix${isUser?' wc-fix-user':''}">${m[0]} VS ${m[1]}</div>`;
+      h+=`<div class="wc-fix${isUser?' wc-fix-user':''}">${fixtureRow(m[0],m[1])}</div>`;
     });
     h+=`</div>`;
   }
@@ -3779,8 +4080,8 @@ function showKnockout(){
     const isUser=m.a===wc.userTeam||m.b===wc.userTeam;
     const decided=m.winner!==null;
     h+=`<div class="wc-kmatch${isUser?' wc-kmatch-user':''}">`;
-    h+=`<div class="${decided&&m.winner===m.a?'wc-win':''}">${m.a}${decided?` <b>${m.aScore}</b>`:''}</div>`;
-    h+=`<div class="${decided&&m.winner===m.b?'wc-win':''}">${m.b}${decided?` <b>${m.bScore}</b>`:''}</div>`;
+    h+=`<div class="ko-line${decided&&m.winner===m.a?' wc-win':''}"><span class="t">${flagHTML(m.a,initialOf(m.a))}<span class="nm">${m.a}</span></span>${decided?`<b>${m.aScore}</b>`:''}</div>`;
+    h+=`<div class="ko-line${decided&&m.winner===m.b?' wc-win':''}"><span class="t">${flagHTML(m.b,initialOf(m.b))}<span class="nm">${m.b}</span></span>${decided?`<b>${m.bScore}</b>`:''}</div>`;
     if(decided&&m.decidedByPen) h+=`<div class="small" style="color:#ffd60a">点球决胜</div>`;
     h+=`</div>`;
   });
@@ -3951,7 +4252,7 @@ document.getElementById('overlay').addEventListener('click', e=>{
     else if(act==='playko') playWCKnockoutMatch();
     else if(act==='simko') simKnockoutRound();
     else if(act==='newwc'){ wc=null; startWorldCup(); }
-    else if(act==='menu'){ wc=null; showMenu(); }
+    else if(act==='menu'){ wc=null; showPrematch(); }
     return;
   }
   const btn=e.target.closest('[data-mode]');
@@ -3959,12 +4260,43 @@ document.getElementById('overlay').addEventListener('click', e=>{
   const m=btn.dataset.mode;
   if(m==='match') startMatch();
   else if(m==='penalty') startPenalty();
-  else if(m==='menu') showMenu();
+  else if(m==='menu') showPrematch();
   else if(m==='worldcup') showWCCover();
+});
+
+// 赛前匹配界面事件委托
+document.getElementById('prematch').addEventListener('click', e=>{
+  const club=e.target.closest('.pm-club');
+  if(club){
+    const name=club.dataset.club;
+    pmSelClub=PM_CLUBS.find(c=>c.name===name)||pmSelClub;
+    pmRenderClubs();
+    pmPickClub(name);
+    pmToast('主队 · '+redClub.name+'  对阵 · '+blueClub.name);
+    return;
+  }
+  const fc=e.target.closest('.pm-fcard');
+  if(fc){
+    selectedFormation=fc.dataset.form;
+    pmRenderFormations();
+    pmToast('阵型 · '+selectedFormation);
+    return;
+  }
+  if(e.target.closest('#pmBattle')){
+    pmVibrate([30,20,40]);
+    hidePrematch();
+    startMatch();
+    return;
+  }
+  if(e.target.closest('#pmMore')){
+    hidePrematch();
+    showWCCover();   // 直接播放世界杯 CSS 封面动画，动画结束后进入选国家队
+  }
 });
 
 rollTeams();
 setupTeams();
+showPrematch();
 requestAnimationFrame(loop);
 })();
 </script>

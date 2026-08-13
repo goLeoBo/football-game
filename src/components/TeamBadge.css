@@ -1,0 +1,58 @@
+/* TeamBadge.css — 队徽组件样式（React/Vue 共用） */
+
+/* 队徽统一 40x40，保持比例 */
+.team-badge__img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 6px;
+  vertical-align: middle;
+  flex: 0 0 auto;
+}
+
+/* 首字母圆形头像 fallback */
+.team-badge__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  color: #fff;
+  flex: 0 0 auto;
+  letter-spacing: 0;
+}
+
+/* 对阵行布局 */
+.team-badge__fixture-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.team-badge__side {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.team-badge__side--right {
+  justify-content: flex-end;
+}
+
+.team-badge__vs {
+  color: #888;
+  font-size: 12px;
+  flex: 0 0 auto;
+}
+
+.team-badge__name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
