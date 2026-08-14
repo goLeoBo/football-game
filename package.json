@@ -1,17 +1,21 @@
 {
   "name": "football-game",
-  "version": "1.0.0",
-  "description": "绿茵对决 · 足球游戏 - A football game with canvas rendering",
-  "main": "dist/index.js",
+  "version": "2.0.0",
+  "description": "绿茵对决 · 足球游戏 - React 版（Canvas 引擎 + React UI）",
+  "type": "module",
   "scripts": {
-    "build": "node esbuild.config.mjs",
-    "watch": "node esbuild.config.mjs --watch",
-    "typecheck": "tsc --noEmit"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "dependencies": {},
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
   "devDependencies": {
-    "esbuild": "^0.25.0",
-    "typescript": "^5.7.0"
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11",
+    "vite-plugin-singlefile": "^2.3.3"
   },
   "private": true
 }
