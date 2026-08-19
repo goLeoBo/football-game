@@ -22,23 +22,34 @@ export default function Cover() {
     if (!video) return;
     let videoActive = false;
     const hideVideo = () => { if (!videoActive) { videoActive = true; video.style.display = 'none'; } };
-    const videoFailTimer = setTimeout(hideVideo, isMobile ? 6000 : 4000);
-    const fallbackTimer = setTimeout(proceed, isMobile ? 6000 : 5500);
+    // 移动端网络慢，放宽等待时间，避免视频还没加载完就被误判失败
+    const videoFailTimer = setTimeout(hideVideo, isMobile ? 15000 : 6000);
+    const fallbackTimer = setTimeout(proceed, isMobile ? 16000 : 8000);
 
     video.src = coverVideo;
     video.load();
-    video.play().catch(() => { hideVideo(); });
 
+    // 数据就绪或可播放时再尝试播放；play() 被拒（数据未就绪/自动播放策略）不隐藏视频，
+    // 只有真正的 error 才隐藏。否则手机上刚设置 src 就 play() 会被 reject，导致视频被藏掉。
+    const tryPlay = () => { video.play().catch(() => {}); };
+    const onLoadedData = () => { tryPlay(); };
+    const onCanPlay = () => { tryPlay(); };
     const onPlaying = () => { videoActive = true; clearTimeout(videoFailTimer); clearTimeout(fallbackTimer); };
     const onError = () => { hideVideo(); };
     const onEnded = () => { setTimeout(proceed, 400); };
+
+    video.addEventListener('loadeddata', onLoadedData);
+    video.addEventListener('canplay', onCanPlay);
     video.addEventListener('playing', onPlaying);
     video.addEventListener('error', onError);
     video.addEventListener('ended', onEnded);
+    tryPlay();
 
     return () => {
       clearTimeout(videoFailTimer);
       clearTimeout(fallbackTimer);
+      video.removeEventListener('loadeddata', onLoadedData);
+      video.removeEventListener('canplay', onCanPlay);
       video.removeEventListener('playing', onPlaying);
       video.removeEventListener('error', onError);
       video.removeEventListener('ended', onEnded);
