@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { game } from '../../engine/engine.js';
-import videoBase64 from '../../assets/video.txt?raw';
+import coverVideo from '../../assets/cover.mp4';
 
 // 世界杯封面动画：视频开场 + CSS 动画叠加（复刻原 showWCCover）
 export default function Cover() {
@@ -25,7 +25,7 @@ export default function Cover() {
     const videoFailTimer = setTimeout(hideVideo, isMobile ? 6000 : 4000);
     const fallbackTimer = setTimeout(proceed, isMobile ? 6000 : 5500);
 
-    video.src = `data:video/mp4;base64,${videoBase64}`;
+    video.src = coverVideo;
     video.load();
     video.play().catch(() => { hideVideo(); });
 
