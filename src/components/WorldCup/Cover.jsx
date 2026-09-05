@@ -15,26 +15,25 @@ export default function Cover() {
     setTimeout(() => { game.startWorldCup(); }, 600);
   };
 
-  const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 768;
-
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     let videoActive = false;
     const hideVideo = () => { if (!videoActive) { videoActive = true; video.style.display = 'none'; } };
-    // 移动端网络慢，放宽等待时间，避免视频还没加载完就被误判失败
-    const videoFailTimer = setTimeout(hideVideo, isMobile ? 15000 : 6000);
-    const fallbackTimer = setTimeout(proceed, isMobile ? 16000 : 8000);
+    // 视频加载失败/6 秒未起播则隐藏，最迟 14 秒后无论是否播完都自动进入，
+    // 避免 76 秒的完整视频把用户卡在封面上。
+    const videoFailTimer = setTimeout(hideVideo, 6000);
+    const autoAdvanceTimer = setTimeout(proceed, 14000);
 
     video.src = coverVideo;
     video.load();
 
     // 数据就绪或可播放时再尝试播放；play() 被拒（数据未就绪/自动播放策略）不隐藏视频，
-    // 只有真正的 error 才隐藏。否则手机上刚设置 src 就 play() 会被 reject，导致视频被藏掉。
+    // 只有真正的 error 才隐藏。
     const tryPlay = () => { video.play().catch(() => {}); };
     const onLoadedData = () => { tryPlay(); };
     const onCanPlay = () => { tryPlay(); };
-    const onPlaying = () => { videoActive = true; clearTimeout(videoFailTimer); clearTimeout(fallbackTimer); };
+    const onPlaying = () => { videoActive = true; clearTimeout(videoFailTimer); };
     const onError = () => { hideVideo(); };
     const onEnded = () => { setTimeout(proceed, 400); };
 
@@ -47,7 +46,7 @@ export default function Cover() {
 
     return () => {
       clearTimeout(videoFailTimer);
-      clearTimeout(fallbackTimer);
+      clearTimeout(autoAdvanceTimer);
       video.removeEventListener('loadeddata', onLoadedData);
       video.removeEventListener('canplay', onCanPlay);
       video.removeEventListener('playing', onPlaying);
@@ -57,19 +56,8 @@ export default function Cover() {
   }, []);
 
   return (
-    <div className="wc-cover" style={{ opacity }} onClick={(e) => { if (e.target.closest('.wc-cover-skip')) return; proceed(); }}>
+    <div className="wc-cover" style={{ opacity }} onClick={proceed}>
       <video ref={videoRef} className="wc-cover-video" playsInline muted />
-      <div className="wc-cover-bg" />
-      <div className="wc-cover-lights" />
-      <div className="wc-cover-content">
-        <div className="wc-cover-sub">FIFA WORLD CUP</div>
-        <div className="wc-cover-2026">2026</div>
-        <div className="wc-cover-title">世 界 杯</div>
-        <div className="wc-cover-hosts">🇺🇸🇨🇦🇲🇽</div>
-        <div className="wc-cover-trophy">🏆</div>
-        <div className="wc-cover-continue">点击屏幕进入 · 或等待自动跳转</div>
-      </div>
-      <div className="wc-cover-skip" onClick={(e) => { e.stopPropagation(); proceed(); }}>跳过 ▶</div>
     </div>
   );
 }

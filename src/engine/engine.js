@@ -3158,7 +3158,10 @@ function loop(t){
   } else {
     if(lastActiveName !== ''){ lastActiveName=''; commit({ activeName: '' }); }
   }
-  draw();
+  // 赛前匹配与世界杯封面是整屏不透明界面，背后看不到球场，
+  // 跳过高频重绘可明显降低低端手机的卡顿。
+  const curScreen = getState().screen;
+  if(curScreen !== 'prematch' && curScreen !== 'wc-cover') draw();
   requestAnimationFrame(loop);
 }
 
