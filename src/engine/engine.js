@@ -6,12 +6,9 @@ import {
   FLAG_BASE, AVATAR_COLORS, resolveClubLogo,
 } from "./data.js";
 import { commit, getState } from "./store.js";
-import { start3D as startThree3D, stop3D as stopThree3D, render3DFrame } from './threeRenderer.js';
 
 
 let cv = null, ctx = null;
-let threeActive = false;   // 3D 观感试验渲染模式
-let prefer3D = true;       // 正式版默认优先 3D，可手动切回 2D
 
 // ====== 场地参数 ======
 const FW = 1389, FH = 900;  // 标准足球场比例 1.543:1（≈105m×68m）
@@ -3114,7 +3111,6 @@ function pmPickClub(name){
 }
 // 打开赛前匹配界面
 function showPrematch(){
-  deactivate3DStage();              // 回到主菜单时收起 3D 画面，但保留 3D 偏好
   teamMode='club';                  // prematch 固定为俱乐部选主队模式
   commit({ screen: 'prematch' });
   if(!redClub || !blueClub) pmPickClub(pmSelClub.name);  // 首次：抽签
@@ -3162,74 +3158,15 @@ function loop(t){
   } else {
     if(lastActiveName !== ''){ lastActiveName=''; commit({ activeName: '' }); }
   }
+  // 赛前匹配与世界杯封面是整屏不透明界面，背后看不到球场，
+  // 跳过高频重绘可明显降低低端手机的卡顿。
   const curScreen = getState().screen;
-  if(threeActive){
-    // 3D 试验：只在真实比赛画面使用 Three.js 渲染
-    if(curScreen === null){
-      render3DFrame({
-        camPanX,
-        players: players.map((p, i) => ({
-          x: p.x, y: p.y,
-          faceX: p.face ? p.face.x : 0,
-          faceY: p.face ? p.face.y : 0,
-          vx: p.vx || 0,
-          vy: p.vy || 0,
-          team: p.team,
-          active: i === activeIdx,
-        })),
-        ball: {
-          x: ball.x, y: ball.y, z: ball.z || 0,
-          vx: ball.vx || 0, vy: ball.vy || 0,
-        },
-      });
-    }
-  } else if(curScreen !== 'prematch' && curScreen !== 'wc-cover'){
-    // 赛前匹配与世界杯封面是整屏不透明界面，背后看不到球场，
-    // 跳过高频重绘可明显降低低端手机的卡顿。
-    draw();
-  }
+  if(curScreen !== 'prematch' && curScreen !== 'wc-cover') draw();
   requestAnimationFrame(loop);
-}
-
-// ====== 3D 观感试验 ======
-// 玩法/AI/物理全部复用原 2D 引擎，只把画面层切到 Three.js。
-function ensure3DMatch(){
-  if(threeActive) return true;
-  if(!prefer3D) return false;
-  const wrap = document.getElementById('wrap');
-  if(!wrap) return false;
-  const ok = startThree3D(wrap, stop3DExperiment);
-  if(!ok) return false;
-  threeActive = true;
-  cv.style.display = 'none';
-  resize();
-  return true;
-}
-function start3DExperiment(){
-  prefer3D = true;
-  ensure3DMatch();
-  startMatch();
-}
-function stop3DExperiment(){
-  if(!threeActive) return;
-  prefer3D = false;
-  threeActive = false;
-  stopThree3D();
-  cv.style.display = '';
-  resize();
-}
-function deactivate3DStage(){
-  // 回到全屏菜单等界面时暂时收起 3D 画面，但保留“下次仍用 3D”的偏好
-  if(!threeActive) return;
-  threeActive = false;
-  stopThree3D();
-  cv.style.display = '';
-  resize();
 }
 
 // ====== 启动 ======
 function startMatch(){
-  if(prefer3D) ensure3DMatch();
   mode='match'; score=[0,0];
   commit({ score: [0,0], penHud: { ...getState().penHud, visible:false }, debug: true });
   matchTime=selectedTime; timer=matchTime;
@@ -3547,7 +3484,6 @@ function showTrophy(){
 }
 
 function startWCMatch(teamA,teamB,callback){
-  if(prefer3D) ensure3DMatch();
   wc._matchCallback=callback;
   wc._matchTeams=[teamA,teamB];
   mode='match';
@@ -3676,7 +3612,6 @@ export const game = {
   uiMode, uiPickClub, uiSetTeamMode, uiSetFormation, uiSetTime,
   uiSelectWCTeam, uiWCAct, uiPmPickClub, uiPmSetFormation, uiPmBattle, uiPmMore,
   startMatch, startPenalty, debugResetMatch, showPrematch, startWorldCup,
-  start3DExperiment, stop3DExperiment,
   bindStick,
   // 触屏
   touchShoot, touchPass, touchLong, touchTackle, setSprint,
