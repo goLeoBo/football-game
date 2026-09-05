@@ -20,10 +20,11 @@ export default function Cover() {
     if (!video) return;
     let videoActive = false;
     const hideVideo = () => { if (!videoActive) { videoActive = true; video.style.display = 'none'; } };
-    // 视频加载失败/6 秒未起播则隐藏，最迟 14 秒后无论是否播完都自动进入，
-    // 避免 76 秒的完整视频把用户卡在封面上。
-    const videoFailTimer = setTimeout(hideVideo, 6000);
-    const autoAdvanceTimer = setTimeout(proceed, 14000);
+    // 手机网络较慢时首帧可能超过 6 秒才加载完，不能提前隐藏。
+    // 只有真正的 error（格式/网络失败）才隐藏；起播后或兜底时间到会自动进入。
+    const coarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    const isMobile = !!coarsePointer || (('ontouchstart' in window) || navigator.maxTouchPoints > 0) && window.innerWidth < 900;
+    const autoAdvanceTimer = setTimeout(proceed, isMobile ? 22000 : 14000);
 
     video.src = coverVideo;
     video.load();
@@ -33,7 +34,7 @@ export default function Cover() {
     const tryPlay = () => { video.play().catch(() => {}); };
     const onLoadedData = () => { tryPlay(); };
     const onCanPlay = () => { tryPlay(); };
-    const onPlaying = () => { videoActive = true; clearTimeout(videoFailTimer); };
+    const onPlaying = () => { videoActive = true; video.style.display = ''; };
     const onError = () => { hideVideo(); };
     const onEnded = () => { setTimeout(proceed, 400); };
 
@@ -45,7 +46,6 @@ export default function Cover() {
     tryPlay();
 
     return () => {
-      clearTimeout(videoFailTimer);
       clearTimeout(autoAdvanceTimer);
       video.removeEventListener('loadeddata', onLoadedData);
       video.removeEventListener('canplay', onCanPlay);
@@ -57,7 +57,16 @@ export default function Cover() {
 
   return (
     <div className="wc-cover" style={{ opacity }} onClick={proceed}>
-      <video ref={videoRef} className="wc-cover-video" playsInline muted />
+      <video
+        ref={videoRef}
+        className="wc-cover-video"
+        playsInline
+        webkit-playsinline=""
+        x5-playsinline=""
+        muted
+        autoPlay
+        preload="auto"
+      />
     </div>
   );
 }
