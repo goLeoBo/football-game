@@ -3,7 +3,7 @@
 import {
   FORMATIONS, RED_POOL, BLUE_POOL, CLUBS, PM_CLUBS, PM_FORMATIONS,
   NATIONAL_TEAMS, NT_STARS, NT_FLAG, CLUB_LOGO_BASE, CLUB_LOGO,
-  FLAG_BASE, AVATAR_COLORS,
+  FLAG_BASE, AVATAR_COLORS, resolveClubLogo,
 } from "./data.js";
 import { commit, getState } from "./store.js";
 
@@ -3088,8 +3088,7 @@ function pmToast(msg){
 
 // 供 React 组件使用的队徽 URL 解析（原 pmRenderClubs 的图片逻辑）
 function pmLogoURL(c){
-  const logo=CLUB_LOGO[c.name];
-  return logo ? encodeURI(CLUB_LOGO_BASE+logo) : '';
+  return resolveClubLogo(CLUB_LOGO[c.name]);
 }
 function pmSyncFromState(){
   const info=PM_CLUBS.find(c=>c.name===redClub.name)||pmSelClub;
@@ -3225,7 +3224,7 @@ function avatarColor(name){
 function flagHTML(name, avatarText){
   const club = CLUB_LOGO[name];
   const iso = NT_FLAG[name];
-  const src = club ? encodeURI(CLUB_LOGO_BASE + club) : (iso ? (FLAG_BASE + iso + '.svg') : '');
+  const src = club ? resolveClubLogo(club) : (iso ? (FLAG_BASE + iso + '.svg') : '');
   if(src){
     return `<span class="t"><span class="avatar" style="background:${avatarColor(name)};display:none">${avatarText}</span><img class="flag" src="${src}" alt="${name}" loading="lazy" onerror="this.style.display='none';this.previousElementSibling.style.display='inline-flex'"></span>`;
   }
@@ -3623,7 +3622,7 @@ export const game = {
   // 数据常量与工具（供 React 组件复用）
   data: {
     CLUBS, PM_CLUBS, PM_FORMATIONS, NATIONAL_TEAMS, NT_STARS,
-    NT_FLAG, CLUB_LOGO, CLUB_LOGO_BASE, FLAG_BASE, AVATAR_COLORS,
+    NT_FLAG, CLUB_LOGO, CLUB_LOGO_BASE, FLAG_BASE, AVATAR_COLORS, resolveClubLogo,
   },
   helpers: {
     avatarColor, flagHTML, initialOf, fixtureRow,
