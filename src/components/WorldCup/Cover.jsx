@@ -32,6 +32,8 @@ export default function Cover() {
     // 数据就绪或可播放时再尝试播放；play() 被拒（数据未就绪/自动播放策略）不隐藏视频，
     // 只有真正的 error 才隐藏。
     const tryPlay = () => { video.play().catch(() => {}); };
+    // 部分手机浏览器会拦截自动播放：首次触摸屏幕时补一次 play()。
+    const unlockPlay = () => { tryPlay(); };
     const onLoadedData = () => { tryPlay(); };
     const onCanPlay = () => { tryPlay(); };
     const onPlaying = () => { videoActive = true; video.style.display = ''; };
@@ -43,6 +45,8 @@ export default function Cover() {
     video.addEventListener('playing', onPlaying);
     video.addEventListener('error', onError);
     video.addEventListener('ended', onEnded);
+    window.addEventListener('pointerdown', unlockPlay, { once: true });
+    window.addEventListener('touchstart', unlockPlay, { once: true });
     tryPlay();
 
     return () => {
@@ -52,11 +56,24 @@ export default function Cover() {
       video.removeEventListener('playing', onPlaying);
       video.removeEventListener('error', onError);
       video.removeEventListener('ended', onEnded);
+      window.removeEventListener('pointerdown', unlockPlay);
+      window.removeEventListener('touchstart', unlockPlay);
     };
   }, []);
 
+  const handleTap = () => {
+    if (advanced.current) return;
+    const video = videoRef.current;
+    // 视频还没起来时，第一次点击先尝试播放；已起播后点击才是跳过进入
+    if (video && video.paused && !video.ended && video.readyState > 0) {
+      video.play().catch(() => { proceed(); });
+      return;
+    }
+    proceed();
+  };
+
   return (
-    <div className="wc-cover" style={{ opacity }} onClick={proceed}>
+    <div className="wc-cover" style={{ opacity }} onClick={handleTap}>
       <video
         ref={videoRef}
         className="wc-cover-video"
