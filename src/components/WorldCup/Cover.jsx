@@ -5,8 +5,12 @@ import coverVideo from '../../assets/cover.mp4';
 // 世界杯封面动画：视频开场 + CSS 动画叠加（复刻原 showWCCover）
 export default function Cover() {
   const [opacity, setOpacity] = useState(1);
+  const [needTap, setNeedTap] = useState(false);
   const advanced = useRef(false);
   const videoRef = useRef(null);
+  const playingRef = useRef(false);
+  const userWantsPlayRef = useRef(false);
+  const fallbackTimerRef = useRef(null);
 
   const proceed = () => {
     if (advanced.current) return;
@@ -18,26 +22,48 @@ export default function Cover() {
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    let videoActive = false;
-    const hideVideo = () => { if (!videoActive) { videoActive = true; video.style.display = 'none'; } };
-    // 手机网络较慢时首帧可能超过 6 秒才加载完，不能提前隐藏。
-    // 只有真正的 error（格式/网络失败）才隐藏；起播后或兜底时间到会自动进入。
+
     const coarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
     const isMobile = !!coarsePointer || (('ontouchstart' in window) || navigator.maxTouchPoints > 0) && window.innerWidth < 900;
-    const autoAdvanceTimer = setTimeout(proceed, isMobile ? 22000 : 14000);
 
-    video.src = coverVideo;
-    video.load();
+    // 正常自动起播后仍保留自动进入（避免 76 秒完整视频把人卡住）；
+    // 用户手动点过播放后 handleTap 会清掉该定时器，可看到视频自然结束。
+    const autoAdvanceTimer = setTimeout(() => {
+      if (!advanced.current && !playingRef.current) proceed();
+    }, isMobile ? 12000 : 14000);
+    fallbackTimerRef.current = autoAdvanceTimer;
 
-    // 数据就绪或可播放时再尝试播放；play() 被拒（数据未就绪/自动播放策略）不隐藏视频，
-    // 只有真正的 error 才隐藏。
-    const tryPlay = () => { video.play().catch(() => {}); };
-    // 部分手机浏览器会拦截自动播放：首次触摸屏幕时补一次 play()。
-    const unlockPlay = () => { tryPlay(); };
+    // 自动播放被 Safari/省电模式拦截时，约 1.5 秒后给出点击提示。
+    const tipTimer = setTimeout(() => {
+      if (!playingRef.current && !advanced.current) setNeedTap(true);
+    }, 1500);
+
+    // 视频通过 JSX src 声明式加载；若已经起播（如本地缓存极快），同步标记状态。
+    if (!video.paused && !video.ended && video.readyState >= 2) {
+      playingRef.current = true;
+    }
+
+    const tryPlay = () => {
+      if (advanced.current || playingRef.current) return;
+      video.muted = true;
+      const p = video.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    };
     const onLoadedData = () => { tryPlay(); };
     const onCanPlay = () => { tryPlay(); };
-    const onPlaying = () => { videoActive = true; video.style.display = ''; };
-    const onError = () => { hideVideo(); };
+    const onPlaying = () => {
+      playingRef.current = true;
+      setNeedTap(false);
+      // 用户手动点播成功后，撤掉自动跳过，让视频自然播完或点击跳过；
+      // 自动播放成功时保留到点自动进入的逻辑。
+      if (userWantsPlayRef.current && fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
+    };
+    const onError = () => {
+      if (!advanced.current) proceed();
+    };
     const onEnded = () => { setTimeout(proceed, 400); };
 
     video.addEventListener('loadeddata', onLoadedData);
@@ -45,31 +71,36 @@ export default function Cover() {
     video.addEventListener('playing', onPlaying);
     video.addEventListener('error', onError);
     video.addEventListener('ended', onEnded);
-    window.addEventListener('pointerdown', unlockPlay, { once: true });
-    window.addEventListener('touchstart', unlockPlay, { once: true });
     tryPlay();
 
     return () => {
       clearTimeout(autoAdvanceTimer);
+      clearTimeout(tipTimer);
       video.removeEventListener('loadeddata', onLoadedData);
       video.removeEventListener('canplay', onCanPlay);
       video.removeEventListener('playing', onPlaying);
       video.removeEventListener('error', onError);
       video.removeEventListener('ended', onEnded);
-      window.removeEventListener('pointerdown', unlockPlay);
-      window.removeEventListener('touchstart', unlockPlay);
     };
   }, []);
 
   const handleTap = () => {
     if (advanced.current) return;
     const video = videoRef.current;
-    // 视频还没起来时，第一次点击先尝试播放；已起播后点击才是跳过进入
-    if (video && video.paused && !video.ended && video.readyState > 0) {
-      video.play().catch(() => { proceed(); });
+
+    // 已起播：点击屏幕直接跳过进入。
+    if (playingRef.current || (video && !video.paused && !video.ended)) {
+      proceed();
       return;
     }
-    proceed();
+
+    // 还没起播：这次点击用于解锁/启动视频，而不是跳走。
+    userWantsPlayRef.current = true;
+    if (video) {
+      video.muted = true;
+      const p = video.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    }
   };
 
   return (
@@ -77,6 +108,7 @@ export default function Cover() {
       <video
         ref={videoRef}
         className="wc-cover-video"
+        src={coverVideo}
         playsInline
         webkit-playsinline=""
         x5-playsinline=""
@@ -84,6 +116,9 @@ export default function Cover() {
         autoPlay
         preload="auto"
       />
+      {needTap && !playingRef.current && (
+        <div className="wc-cover-tip">▶ 点击播放开场视频</div>
+      )}
     </div>
   );
 }
