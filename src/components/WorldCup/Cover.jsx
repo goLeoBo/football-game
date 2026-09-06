@@ -29,7 +29,7 @@ export default function Cover() {
     // 正常自动起播后仍保留自动进入（避免 76 秒完整视频把人卡住）；
     // 用户手动点过播放后 handleTap 会清掉该定时器，可看到视频自然结束。
     const autoAdvanceTimer = setTimeout(() => {
-      if (!advanced.current && !playingRef.current) proceed();
+      if (!advanced.current) proceed();
     }, isMobile ? 12000 : 14000);
     fallbackTimerRef.current = autoAdvanceTimer;
 
