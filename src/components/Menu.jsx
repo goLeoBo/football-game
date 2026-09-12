@@ -82,6 +82,13 @@ export default function Menu() {
       </div>
       <button
         className="btn"
+        onClick={() => game.showStarPack()}
+        style={{ width: '100%', marginTop: 8, background: 'linear-gradient(135deg,#3a86ff,#1565c0)', color: '#fff', fontWeight: 800 }}
+      >
+        ⭐ 球星卡 · 抽卡组队挑战俱乐部
+      </button>
+      <button
+        className="btn"
         onClick={() => game.uiMode('worldcup')}
         style={{ width: '100%', marginTop: 8, background: 'linear-gradient(135deg,#ffd60a,#ff8c00)', color: '#222', fontWeight: 800 }}
       >

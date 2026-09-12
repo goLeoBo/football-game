@@ -136,3 +136,104 @@ export const FLAG_BASE = 'https://flagcdn.com/';
 
 export const AVATAR_COLORS = ['#0068a8','#a50044','#c8102e','#6cabdd','#dc052d','#1c2c5b','#007a5e','#8a5a00','#5b2d8e','#0a7a8a'];
 
+
+// ====== 球星卡数据 ======
+// id 用于 React key；pos 与引擎位置一致；rating 决定稀有度
+export const STAR_CARDS = [
+  // FWD
+  {id:'messi',   name:'梅西',       pos:'FWD', rating:97, speed:82, shoot:95, pass:96, tackle:45, club:'巴黎圣日耳曼'},
+  {id:'crr',     name:'C罗',        pos:'FWD', rating:95, speed:85, shoot:97, pass:82, tackle:50, club:'尤文图斯'},
+  {id:'mbappe',  name:'姆巴佩',     pos:'FWD', rating:94, speed:97, shoot:90, pass:82, tackle:45, club:'巴黎圣日耳曼'},
+  {id:'haaland', name:'哈兰德',     pos:'FWD', rating:93, speed:90, shoot:95, pass:70, tackle:48, club:'曼城'},
+  {id:'neymar',  name:'内马尔',     pos:'FWD', rating:91, speed:88, shoot:88, pass:91, tackle:42, club:'巴黎圣日耳曼'},
+  {id:'lewan',   name:'莱万',       pos:'FWD', rating:92, speed:80, shoot:96, pass:78, tackle:50, club:'拜仁慕尼黑'},
+  {id:'benzema', name:'本泽马',     pos:'FWD', rating:91, speed:82, shoot:90, pass:88, tackle:48, club:'皇家马德里'},
+  {id:'suarez',  name:'苏亚雷斯',   pos:'FWD', rating:90, speed:80, shoot:90, pass:80, tackle:55, club:'巴塞罗那'},
+  {id:'leo',     name:'莱奥',       pos:'FWD', rating:89, speed:95, shoot:86, pass:80, tackle:42, club:'AC米兰'},
+  {id:'aguero',  name:'阿圭罗',     pos:'FWD', rating:88, speed:82, shoot:90, pass:78, tackle:50, club:'曼城'},
+  {id:'henry',   name:'亨利',       pos:'FWD', rating:90, speed:90, shoot:90, pass:80, tackle:50, club:'巴塞罗那'},
+  {id:'sheva',   name:'舍瓦',       pos:'FWD', rating:89, speed:85, shoot:92, pass:75, tackle:50, club:'AC米兰'},
+  {id:'vini',    name:'维尼修斯',   pos:'FWD', rating:90, speed:96, shoot:85, pass:82, tackle:45, club:'皇家马德里'},
+  {id:'salah',   name:'萨拉赫',     pos:'FWD', rating:91, speed:93, shoot:88, pass:82, tackle:48, club:'利物浦'},
+  // MID
+  {id:'debr',    name:'德布劳内',   pos:'MID', rating:93, speed:78, shoot:88, pass:96, tackle:65, club:'曼城'},
+  {id:'modric',  name:'莫德里奇',   pos:'MID', rating:91, speed:80, shoot:82, pass:93, tackle:70, club:'皇家马德里'},
+  {id:'kroos',   name:'克罗斯',     pos:'MID', rating:90, speed:68, shoot:84, pass:94, tackle:65, club:'皇家马德里'},
+  {id:'belli',   name:'贝林厄姆',   pos:'MID', rating:91, speed:85, shoot:85, pass:86, tackle:75, club:'皇家马德里'},
+  {id:'kante',   name:'坎特',       pos:'MID', rating:90, speed:82, shoot:65, pass:80, tackle:96, club:'切尔西'},
+  {id:'casemi',  name:'卡塞米罗',   pos:'MID', rating:89, speed:75, shoot:82, pass:82, tackle:92, club:'曼联'},
+  {id:'rodri',   name:'罗德里',     pos:'MID', rating:91, speed:72, shoot:80, pass:90, tackle:90, club:'曼城'},
+  {id:'pedri',   name:'佩德里',     pos:'MID', rating:88, speed:78, shoot:78, pass:90, tackle:70, club:'巴塞罗那'},
+  {id:'macca',   name:'麦卡利斯特', pos:'MID', rating:86, speed:80, shoot:75, pass:88, tackle:72, club:'利物浦'},
+  {id:'busq',    name:'布斯克茨',   pos:'MID', rating:87, speed:68, shoot:70, pass:90, tackle:85, club:'巴塞罗那'},
+  {id:'dejong',  name:'德容',       pos:'MID', rating:88, speed:80, shoot:75, pass:90, tackle:78, club:'巴塞罗那'},
+  {id:'pedro',   name:'佩德罗',     pos:'MID', rating:85, speed:78, shoot:80, pass:82, tackle:70, club:'切尔西'},
+  {id:'zidane',  name:'齐达内',     pos:'MID', rating:94, speed:82, shoot:88, pass:95, tackle:65, club:'皇家马德里'},
+  {id:'iniesta', name:'伊涅斯塔',   pos:'MID', rating:92, speed:80, shoot:78, pass:95, tackle:68, club:'巴塞罗那'},
+  {id:'xavi',    name:'哈维',       pos:'MID', rating:90, speed:70, shoot:75, pass:95, tackle:65, club:'巴塞罗那'},
+  {id:'gavi',    name:'加维',       pos:'MID', rating:87, speed:78, shoot:75, pass:85, tackle:75, club:'巴塞罗那'},
+  {id:'tchou',   name:'琼阿梅尼',   pos:'MID', rating:87, speed:80, shoot:70, pass:82, tackle:90, club:'皇家马德里'},
+  // DEF
+  {id:'vandijk', name:'范戴克',     pos:'DEF', rating:92, speed:80, shoot:65, pass:78, tackle:94, club:'利物浦'},
+  {id:'koulib',  name:'库利巴利',   pos:'DEF', rating:89, speed:82, shoot:60, pass:72, tackle:92, club:'切尔西'},
+  {id:'rdias',   name:'鲁本·迪亚斯',pos:'DEF', rating:90, speed:75, shoot:55, pass:78, tackle:92, club:'曼城'},
+  {id:'varane',  name:'瓦拉内',     pos:'DEF', rating:88, speed:82, shoot:60, pass:72, tackle:90, club:'曼联'},
+  {id:'cancelo', name:'坎塞洛',     pos:'DEF', rating:88, speed:85, shoot:75, pass:88, tackle:82, club:'巴塞罗那'},
+  {id:'arnold',  name:'阿诺德',     pos:'DEF', rating:88, speed:80, shoot:80, pass:90, tackle:80, club:'利物浦'},
+  {id:'kimmi',   name:'基米希',     pos:'DEF', rating:89, speed:75, shoot:78, pass:90, tackle:85, club:'拜仁慕尼黑'},
+  {id:'roberts', name:'罗伯逊',     pos:'DEF', rating:87, speed:84, shoot:72, pass:85, tackle:80, club:'利物浦'},
+  {id:'maldini', name:'马尔蒂尼',   pos:'DEF', rating:93, speed:82, shoot:65, pass:80, tackle:95, club:'AC米兰'},
+  {id:'ramos',   name:'拉莫斯',     pos:'DEF', rating:90, speed:80, shoot:80, pass:78, tackle:92, club:'皇家马德里'},
+  {id:'puyol',   name:'普约尔',     pos:'DEF', rating:90, speed:75, shoot:70, pass:72, tackle:93, club:'巴塞罗那'},
+  {id:'thiago',  name:'蒂亚戈·席尔瓦',pos:'DEF', rating:89, speed:72, shoot:55, pass:80, tackle:90, club:'切尔西'},
+  {id:'baresi',  name:'巴雷西',     pos:'DEF', rating:94, speed:78, shoot:60, pass:80, tackle:96, club:'AC米兰'},
+  {id:'lapa',    name:'拉波尔特',   pos:'DEF', rating:87, speed:75, shoot:65, pass:80, tackle:88, club:'西班牙'},
+  // GK
+  {id:'courto',  name:'库尔图瓦',   pos:'GK',  rating:91, speed:65, shoot:30, pass:60, tackle:88, club:'皇家马德里'},
+  {id:'neuer',   name:'诺伊尔',     pos:'GK',  rating:90, speed:68, shoot:35, pass:75, tackle:90, club:'拜仁慕尼黑'},
+  {id:'donna',   name:'多纳鲁马',   pos:'GK',  rating:89, speed:70, shoot:30, pass:62, tackle:90, club:'巴黎圣日耳曼'},
+  {id:'alisson', name:'阿利松',     pos:'GK',  rating:90, speed:68, shoot:32, pass:70, tackle:92, club:'利物浦'},
+  {id:'buffon',  name:'布冯',       pos:'GK',  rating:92, speed:60, shoot:25, pass:65, tackle:94, club:'尤文图斯'},
+  {id:'ederson', name:'埃德森',     pos:'GK',  rating:88, speed:65, shoot:40, pass:85, tackle:85, club:'曼城'},
+];
+// 去重 + 修正个别typo
+const _seen = new Set();
+export const STAR_CARDS_DEDUP = STAR_CARDS.filter(c => {
+  if(_seen.has(c.id)) return false;
+  _seen.add(c.id);
+  return true;
+});
+
+export const STAR_POSITIONS = ['FWD','MID','DEF','GK'];
+
+// 评级 → 颜色/边光
+export function cardRarity(rating) {
+  if(rating >= 90) return 'gold';
+  if(rating >= 80) return 'silver';
+  return 'bronze';
+}
+
+// 抽一包：返回 5 张
+// 保底：1/8 概率出 rating≥90 的金卡，否则按权重
+export function rollCardPack(getMyCards) {
+  const pack = [];
+  const haveIds = new Set((getMyCards || []).map(c=>c.id));
+  for(let i=0;i<5;i++){
+    let card;
+    // 优先尝试新卡（用户没拥有过的）
+    const freshPool = STAR_CARDS_DEDUP.filter(c=>!haveIds.has(c.id));
+    const pool = freshPool.length > 0 ? freshPool : STAR_CARDS_DEDUP;
+    if(Math.random() < 1/8){
+      const golds = pool.filter(c=>c.rating>=90);
+      card = golds[Math.floor(Math.random()*golds.length)] || pool[Math.floor(Math.random()*pool.length)];
+    } else if(Math.random() < 4/7){
+      const silvers = pool.filter(c=>c.rating>=80 && c.rating<90);
+      card = silvers[Math.floor(Math.random()*silvers.length)] || pool[Math.floor(Math.random()*pool.length)];
+    } else {
+      const bronzes = pool.filter(c=>c.rating<80);
+      card = bronzes[Math.floor(Math.random()*bronzes.length)] || pool[Math.floor(Math.random()*pool.length)];
+    }
+    pack.push({...card, uid: card.id + '_' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2,6)});
+  }
+  return pack;
+}

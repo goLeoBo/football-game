@@ -2,6 +2,8 @@ import { useGame } from '../engine/store.js';
 import Menu from './Menu.jsx';
 import EndScreen from './EndScreen.jsx';
 import WorldCup from './WorldCup/index.jsx';
+import CardPack from './StarMode/CardPack.jsx';
+import CardTeam from './StarMode/CardTeam.jsx';
 
 export default function Overlay() {
   const { screen } = useGame();
@@ -16,6 +18,8 @@ export default function Overlay() {
         {screen === 'wc-standings' && <WorldCup.Standings />}
         {screen === 'wc-knockout' && <WorldCup.Knockout />}
         {screen === 'wc-trophy' && <WorldCup.Trophy />}
+        {screen === 'star-pack' && <CardPack />}
+        {screen === 'star-team' && <CardTeam />}
       </div>
     </div>
   );

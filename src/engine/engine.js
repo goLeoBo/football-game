@@ -4,11 +4,14 @@ import {
   FORMATIONS, RED_POOL, BLUE_POOL, CLUBS, PM_CLUBS, PM_FORMATIONS,
   NATIONAL_TEAMS, NT_STARS, NT_FLAG, CLUB_LOGO_BASE, CLUB_LOGO,
   FLAG_BASE, AVATAR_COLORS, resolveClubLogo,
+  STAR_CARDS_DEDUP, cardRarity,
 } from "./data.js";
 import { commit, getState } from "./store.js";
 
 
 let cv = null, ctx = null;
+let myCards = [];          // 球星卡模式：玩家拥有的卡
+let starMatchOn = false;   // 球星卡模式开关（red 用 myCards，blue 用随机 STAR_CARDS 豪华版）
 
 // ====== 场地参数 ======
 const FW = 1389, FH = 900;  // 标准足球场比例 1.543:1（≈105m×68m）
@@ -389,23 +392,32 @@ function rollTeams(){
   updateMatchupPreview(); updateTeamNames();
 }
 function updateMatchupPreview(){
-  const red = (teamMode==='club' && redClub) ? redClub.name : '世界明星';
-  const blue = (teamMode==='club' && blueClub) ? blueClub.name : '传奇明星';
+  const red = (teamMode==='star') ? '我的球星队' : (teamMode==='club' && redClub) ? redClub.name : '世界明星';
+  const blue = (teamMode==='star') ? '对手俱乐部' : (teamMode==='club' && blueClub) ? blueClub.name : '传奇明星';
   commit({ matchup: { red, blue } });
 }
 function updateTeamNames(){
   commit({
-    redName: (teamMode==='club'&&redClub) ? redClub.name : '世界明星',
-    blueName: (teamMode==='club'&&blueClub) ? blueClub.name : '传奇明星',
+    redName: (teamMode==='star') ? '我的球星队' : (teamMode==='club'&&redClub) ? redClub.name : '世界明星',
+    blueName: (teamMode==='star') ? '对手俱乐部' : (teamMode==='club'&&blueClub) ? blueClub.name : '传奇明星',
   });
 }
 
 function makePlayer(x,y,team,gk=false,role='FWD'){
-  return {x,y,vx:0,vy:0,team,gk,role,name:'',r:13,stamina:100,homeX:x,homeY:y,face:{x:0,y:team===TEAM_RED?1:-1},kick:0,
+  return {x,y,vx:0,vy:0,team,gk,role,name:'',stats:null,r:13,stamina:100,homeX:x,homeY:y,face:{x:0,y:team===TEAM_RED?1:-1},kick:0,
     slide:0, slideDir:{x:0,y:0}, slidePower:0, cards:0, sentOff:false};
 }
 function buildTeam(team, form){
-  const src = (teamMode==='club' && redClub) ? (team===TEAM_RED?redClub:blueClub) : (team===TEAM_RED?RED_POOL:BLUE_POOL);
+  let src;
+  if(teamMode==='star'){
+    // 球星卡模式：红队用玩家卡库拼队，蓝队随机挑一支俱乐部豪华阵容
+    src = team===TEAM_RED ? buildLegacySrcFromCards(myCards) : starClubSrc();
+  } else {
+    src = (teamMode==='club' && redClub) ? (team===TEAM_RED?redClub:blueClub) : (team===TEAM_RED?RED_POOL:BLUE_POOL);
+  }
+
+  myCards = getState().myCards || myCards;
+  starMatchOn = getState().starMatchOn || starMatchOn;
   const pool = { GK:shuffle([...src.GK]), DEF:shuffle([...src.DEF]), MID:shuffle([...src.MID]), FWD:shuffle([...src.FWD]) };
   const cnt = {GK:0,DEF:0,MID:0,FWD:0};
   form.forEach(f=>{
@@ -416,12 +428,50 @@ function buildTeam(team, form){
     const px = team===TEAM_RED ? sx : FW-sx;
     const p = makePlayer(px, sy, team, role==='GK', role);
     p.name = name;
+    // 球星卡模式：红队取玩家卡库；蓝队按名字从全卡池匹配，无匹配给中高档补位卡
+    if(starMatchOn){
+      const cardList = team===TEAM_RED ? myCards : STAR_CARDS_DEDUP;
+      const starPool = team===TEAM_RED ? [...myCards, ...STAR_CARDS_DEDUP.filter(c=>!myCards.some(m=>m.id===c.id))] : STAR_CARDS_DEDUP;
+      const card = starPool.find(c=>c.name===name) || cardList.find(c=>c.pos===role) || cardList[0];
+      if(card){ p.stats = card; p.stamina = 82 + (card.rating-60)*0.35; }
+    }
     players.push(p);
   });
+}
+// 从玩家卡库按位置拼出姓名池（缺位用 STAR_CARDS 补齐，保证 11 人）
+function buildLegacySrcFromCards(cards){
+  const g = {};
+  ['GK','DEF','MID','FWD'].forEach(k=>g[k]=[]);
+  (cards||[]).forEach(c=>{ if(g[c.pos]) g[c.pos].push(c.name); });
+  ['GK','DEF','MID','FWD'].forEach(k=>{
+    if(g[k].length===0){
+      const extra = shuffle([...STAR_CARDS_DEDUP]).filter(c=>c.pos===k);
+      g[k] = extra.map(c=>c.name);
+    }
+  });
+  return g;
+}
+// 球星卡模式的对手：随机挑一支真实俱乐部作为蓝队
+function starClubSrc(){
+  const club = CLUBS[Math.floor(Math.random()*CLUBS.length)] || CLUBS[0];
+  return { GK:[...club.GK], DEF:[...club.DEF], MID:[...club.MID], FWD:[...club.FWD] };
+}
+// 球星卡模式的 AI（蓝队）豪华卡池：为了可玩性始终维持中高水准
+function starAIList(){
+  const gold = STAR_CARDS_DEDUP.filter(c=>c.rating>=90);
+  const rest = STAR_CARDS_DEDUP.filter(c=>c.rating<90);
+  const pick = (arr,n)=>shuffle([...arr]).slice(0,n);
+  return [
+    ...pick(gold, Math.max(2, Math.floor(gold.length/2))),
+    ...pick(rest, Math.min(rest.length, 22)),
+  ];
 }
 function setupTeams(){
   players = [];
   const form = FORMATIONS[selectedFormation] || FORMATIONS['4-3-3'];
+  // 同步球星卡状态（React 端通过 setStarCards 写入）
+  myCards = getState().myCards || myCards;
+  starMatchOn = getState().starMatchOn || starMatchOn;
   buildTeam(TEAM_RED, form);
   buildTeam(TEAM_BLUE, form);
   activeIdx = players.findIndex(p=>p.team===TEAM_RED && p.role==='FWD');
@@ -614,7 +664,9 @@ function doSlideTackle(p, dir, power){
   if(p.slide>0||p.stamina<15) return;
   const len=Math.hypot(dir.x,dir.y)||1;
   const ndx=dir.x/len, ndy=dir.y/len;
-  p.slide=0.5; p.stamina-=15;
+  const cleanPower = power + (p.stats ? (p.stats.tackle-60)/100 * 0.25 : 0); // 抢断属性 → 更大铲抢强度
+  power = Math.max(0.15, Math.min(1.1, cleanPower));
+  p.slide=0.5; p.stamina-=(p.stats ? Math.max(5, Math.round(15*(90/p.stats.speed))) : 15);
   p.slideDir={x:ndx,y:ndy};
   p.slidePower=power; // 0~1 铲球强度
   // 强度决定滑行速度：弱铲 2.0，强铲 6.0
@@ -697,7 +749,13 @@ function executeShowCard(player, color, reason, foulX, foulY){
 }
 function doShoot(p){
   const d=p.face, len=Math.hypot(d.x,d.y)||1, sp=13;
-  ball.vx=d.x/len*sp; ball.vy=d.y/len*sp; ball.vz=0; ball.z=0;
+  const shotMul = p.stats ? 0.82 + p.stats.shoot/100 : 1;   // 射门属性 → 球速与准度
+  const aim = p.stats ? 1.02 - (p.stats.shoot/200) : 1;     // 高射门 → 偏差更小(方向修正)
+  let angle=0;
+  if(aim < 1){ angle = (Math.random()-0.5)*(1-aim)*0.5; }   // 低射门随机偏
+  const ca=Math.cos(angle), sa=Math.sin(angle);
+  const dxn=d.x/len, dyn=d.y/len;
+  ball.vx=(dxn*ca - dyn*sa)*sp*shotMul; ball.vy=(dxn*sa + dyn*ca)*sp*shotMul; ball.vz=0; ball.z=0;
   ball.owner=null; p.kick=0.3; ball.lastTeam=p.team; recordOffside(p);
   // 射门朝向对方球门时触发门将扑救
   triggerGKDive(p);
@@ -711,7 +769,13 @@ function doPass(p){
   players.forEach(q=>{ if(q.team===p.team&&q!==p&&!q.gk){ const dx=q.x-p.x,dy=q.y-p.y,dot=dx*fx+dy*fy; if(dot<=0) return; const d=Math.hypot(dx,dy); if(d<bd){bd=d;best=q;} } });
   let tx,ty; if(best){tx=best.x;ty=best.y;} else {tx=p.x+fx*200;ty=p.y+fy*200;}
   const dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy)||1,sp=7;
-  ball.vx=dx/d*sp; ball.vy=dy/d*sp; ball.vz=0; ball.z=0; ball.owner=null; p.kick=0.2; ball.lastTeam=p.team;
+  const passMul = p.stats ? 0.8 + p.stats.pass/100 : 1;    // 传球属性 → 速度与偏差
+  const aim = p.stats ? 1.02 - (p.stats.pass/200) : 1;
+  let angle=0; if(aim<1){ angle=(Math.random()-0.5)*(1-aim)*0.5; }
+  const ca=Math.cos(angle), sa=Math.sin(angle);
+  const dl = Math.hypot(dx,dy)||1;
+  const ux=dx/dl, uy=dy/dl;
+  ball.vx=(ux*ca-uy*sa)*sp*passMul; ball.vy=(ux*sa+uy*ca)*sp*passMul; ball.vz=0; ball.z=0; ball.owner=null; p.kick=0.2; ball.lastTeam=p.team;
   recordOffside(p);
 }
 // ====== 任意球主罚系统 ======
@@ -1261,7 +1325,8 @@ function aiUpdate(p, dt, idx, chaserIdx, secIdx){
 }
 function moveToward(p,tx,ty,sp){
   const dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy)||1,acc=0.32,max=1.4*sp;
-  p.vx+=dx/d*acc; p.vy+=dy/d*acc; const v=Math.hypot(p.vx,p.vy); if(v>max){p.vx=p.vx/v*max;p.vy=p.vy/v*max;}
+  const speedMul = p.stats ? 0.75 + p.stats.speed/100 : 1;   // 速度属性 → 移动幅度
+  p.vx+=dx/d*acc*speedMul; p.vy+=dy/d*acc*speedMul; const v=Math.hypot(p.vx,p.vy); if(v>max*speedMul){p.vx=p.vx/v*(max*speedMul);p.vy=p.vy/v*(max*speedMul);}
   if(Math.abs(dx)>2||Math.abs(dy)>2){p.face.x=dx/d;p.face.y=dy/d;}
 }
 
@@ -2998,6 +3063,14 @@ function drawPlayers(){
     ctx.font = (i===activeIdx?'bold ':'')+'9px sans-serif'; ctx.textBaseline='bottom';
     ctx.fillText(p.name||'', sx, hdY-hdR-2);
 
+    // 球星卡球员：头顶显示评分角标（金/银/铜）
+    if(p.stats){
+      const st = cardRarity(p.stats.rating);
+      const sc = st==='gold'?'#ffd700':st==='silver'?'#cfe0f0':'#d5976f';
+      ctx.fillStyle = sc; ctx.font='bold 10px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+      ctx.fillText(p.stats.rating, sx, hdY-hdR-14);
+    }
+
     // 体力条
     if(i===activeIdx){
       const bw=28,bh=4,bx=sx-bw/2,by=hdY-hdR-11;
@@ -3176,6 +3249,15 @@ function startMatch(){
   if('ontouchstart' in window||navigator.maxTouchPoints>0) commit({ touch: true });
 }
 
+// 球星卡模式开赛：写入玩家卡库 + 打开 starMatchOn 后走普通比赛流程
+function startStarMatch(cards){
+  myCards = Array.isArray(cards) ? cards : (getState().myCards || []);
+  starMatchOn = true;
+  teamMode = 'star';
+  commit({ myCards, starMatchOn: true });
+  startMatch();
+}
+
 // 调试：重置比赛状态并重新开球（保留当前阵容与配置）
 function debugResetMatch(){
   score=[0,0];
@@ -3199,6 +3281,14 @@ function showMenu(){
     screenData: null,
   });
   updateMatchupPreview();
+}
+
+// —— 球星卡玩法界面入口 ——
+function showStarPack(){               // 抽卡大厅
+  commit({ screen: 'star-pack', screenData: null, starMatchOn: true });
+}
+function showStarTeam(){               // 组队界面
+  commit({ screen: 'star-team', screenData: null });
 }
 
 // ====== 2026 世界杯模式 ======
@@ -3531,6 +3621,7 @@ function buildWCTeam(team,form,teamName){
 function uiPickClub(name){ pickClub(name); showMenu(); }
 function uiSetTeamMode(mode){
   teamMode=mode;
+  starMatchOn = false;
   if(teamMode==='club'&&!redClub){ rollTeams(); } else { redClub=null; blueClub=null; rollTeams(); }
   showMenu();
 }
@@ -3547,7 +3638,7 @@ function uiWCAct(act){
   else if(act==='menu'){ wc=null; showPrematch(); }
 }
 function uiMode(m){
-  if(m==='match') startMatch();
+  if(m==='match'){ starMatchOn=false; commit({ starMatchOn:false }); startMatch(); }
   else if(m==='penalty') startPenalty();
   else if(m==='menu') showPrematch();
   else if(m==='worldcup') showWCCover();
@@ -3612,6 +3703,16 @@ export const game = {
   uiMode, uiPickClub, uiSetTeamMode, uiSetFormation, uiSetTime,
   uiSelectWCTeam, uiWCAct, uiPmPickClub, uiPmSetFormation, uiPmBattle, uiPmMore,
   startMatch, startPenalty, debugResetMatch, showPrematch, startWorldCup,
+  startStarMatch,
+  showStarPack, showStarTeam,
+  goMenu: showMenu,
+  setMyCards: (cards) => { myCards = cards || []; starMatchOn = true; commit({ myCards, starMatchOn: true }); },
+  starState: () => ({ myCards, starMatchOn }),
+  addCards: (newCards) => {
+    const cur = Array.isArray(getState().myCards) ? getState().myCards : [];
+    const merged = [...cur, ...(newCards||[])];
+    myCards = merged; commit({ myCards: merged, starTick: getState().starTick + 1 });
+  },
   bindStick,
   // 触屏
   touchShoot, touchPass, touchLong, touchTackle, setSprint,

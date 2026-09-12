@@ -39,6 +39,11 @@ let state = {
 
   // 世界杯：递增计数触发面板重渲染（数据经 engine.getWC() 读取）
   wcTick: 0,
+
+  // 球星卡
+  myCards: [],
+  starMatchOn: false,
+  starTick: 0,
 };
 
 const listeners = new Set();

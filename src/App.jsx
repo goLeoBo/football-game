@@ -20,7 +20,7 @@ export default function App() {
     game.init(canvasRef.current);
   }, []);
 
-  const panelScreen = ['menu', 'match-end', 'penalty-end', 'wc-select', 'wc-draw', 'wc-standings', 'wc-knockout', 'wc-trophy'];
+  const panelScreen = ['menu', 'match-end', 'penalty-end', 'wc-select', 'wc-draw', 'wc-standings', 'wc-knockout', 'wc-trophy', 'star-pack', 'star-team'];
 
   return (
     <div id="wrap">
