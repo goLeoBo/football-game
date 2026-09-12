@@ -8,7 +8,14 @@ export default function Menu() {
   const times = [[60, '60秒'], [90, '90秒'], [120, '120秒']];
 
   return (
-    <>
+    <div className="menu-page">
+      <button
+        className="btn btn-star"
+        onClick={() => game.showStarPack()}
+      >
+        ⭐ 球星卡 · 抽卡组队挑战俱乐部
+      </button>
+
       <h1>绿茵对决</h1>
       <div className="tag">FOOTBALL · 明星阵容</div>
       <p>选择阵型与时长，操控世界球星出战</p>
@@ -82,13 +89,6 @@ export default function Menu() {
       </div>
       <button
         className="btn"
-        onClick={() => game.showStarPack()}
-        style={{ width: '100%', marginTop: 8, background: 'linear-gradient(135deg,#3a86ff,#1565c0)', color: '#fff', fontWeight: 800 }}
-      >
-        ⭐ 球星卡 · 抽卡组队挑战俱乐部
-      </button>
-      <button
-        className="btn"
         onClick={() => game.uiMode('worldcup')}
         style={{ width: '100%', marginTop: 8, background: 'linear-gradient(135deg,#ffd60a,#ff8c00)', color: '#222', fontWeight: 800 }}
       >
@@ -116,6 +116,6 @@ export default function Menu() {
         <br />
         移动端：左下摇杆移动，右下按钮传球/长传/射门
       </div>
-    </>
+    </div>
   );
 }
