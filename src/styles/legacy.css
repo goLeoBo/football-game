@@ -202,6 +202,8 @@
   @keyframes pmBreath{0%,100%{box-shadow:0 0 6px rgba(57,255,136,.45),0 0 18px rgba(57,255,136,.22);border-color:#39ff88}50%{box-shadow:0 0 18px rgba(57,255,136,.9),0 0 46px rgba(57,255,136,.5);border-color:#c8ffe0}}
   .pm-more{width:100%;padding:12px 0;font-size:14px;font-weight:700;letter-spacing:3px;color:#9fb6c9;background:rgba(13,32,55,.6);border:1px solid rgba(125,255,176,.22);border-radius:999px;cursor:pointer;transition:transform .12s ease}
   .pm-more:active{transform:scale(.96)}
+.pm-star{width:100%;padding:15px 0;font-size:16px;font-weight:800;letter-spacing:1px;color:#fff;background:linear-gradient(135deg,#3a86ff,#1565c0);border:2px solid #7db4ff;border-radius:999px;cursor:pointer;transition:transform .12s ease;box-shadow:0 6px 20px rgba(58,134,255,.45)}
+.pm-star:active{transform:scale(.96)}
   .pm-toast{position:fixed;left:50%;bottom:18vh;transform:translateX(-50%) translateY(8px);background:rgba(5,11,26,.9);border:1px solid #39ff88;color:#7dffb0;font-size:13px;padding:8px 16px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease;z-index:50}
   .pm-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   @media(max-width:360px){.pm-crest{width:52px;height:52px;font-size:13px}.pm-tname{font-size:13px}}
@@ -269,6 +271,6 @@
 /* menu */
 .menu-page{display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 24px);overflow-y:auto;overflow-x:hidden;padding:10px 14px 16px;scrollbar-width:thin;scrollbar-color:#39ff88 rgba(5,15,5,.5);width:100%;max-width:520px;margin:0 auto}
 .menu-page .keys,.menu-page .small{margin:0}
-.btn-star{width:100%;padding:14px 0;font-size:17px;font-weight:800;letter-spacing:1px;color:#fff;border:none;border-radius:999px;cursor:pointer;background:linear-gradient(135deg,#3a86ff,#1565c0);box-shadow:0 6px 20px rgba(58,134,255,.45);margin:0 0 10px 0}
+.btn-star{width:100%;padding:14px 0;font-size:17px;font-weight:800;letter-spacing:1px;color:#fff;border:none;border-radius:999px;cursor:pointer;background:linear-gradient(135deg,#3a86ff,#1565c0);box-shadow:0 6px 20px rgba(58,134,255,.45);margin:0 0 10px 0;display:block!important;visibility:visible!important;opacity:1!important;z-index:9999!important}
 .btn-star:active{transform:scale(.97)}
 @media(max-width:600px){.menu-page{padding:8px 10px 12px;gap:8px}.menu-page h1{font-size:26px}.menu-page .tag{font-size:11px}.menu-page p{font-size:13px}.menu-page .sel-group{margin:4px 0}.menu-page .keys{font-size:11px;gap:6px 12px}.menu-page .small{font-size:10px}.menu-page .btn-star{font-size:15px;padding:12px 0}.menu-page .btns{margin-top:4px}}

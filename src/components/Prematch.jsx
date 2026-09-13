@@ -165,6 +165,7 @@ export default function Prematch() {
         </div>
 
         <button className="pm-battle" onClick={() => game.uiPmBattle()}>开 战</button>
+        <button className="pm-star" onClick={() => game.showStarPack()}>⭐ 球星卡 · 抽卡组队挑战俱乐部</button>
         <button className="pm-more" onClick={() => game.uiPmMore()}>🌍 世界杯模式</button>
       </div>
       <div className={`pm-toast${toast.text ? ' show' : ''}`} key={toast.key}>{toast.text}</div>
