@@ -83,7 +83,8 @@ function makeFieldTexture() {
   };
 
   x.strokeRect(8, 8, cw - 16, ch - 16);
-  line(0, ch / 2, cw, ch / 2);
+  // 中线沿场地宽度方向（与球门线、禁区前沿平行）
+  line(cw / 2, 8, cw / 2, ch - 8);
 
   // 中圈 9.15m
   x.beginPath();
@@ -107,8 +108,8 @@ function makeFieldTexture() {
   // 点球点
   x.fillStyle = '#fff';
   x.beginPath();
-  x.arc(boxD - mx(m(11)), ch / 2, 5, 0, Math.PI * 2);
-  x.arc(cw - boxD + mx(m(11)), ch / 2, 5, 0, Math.PI * 2);
+  x.arc(8 + mx(m(11)), ch / 2, 5, 0, Math.PI * 2);
+  x.arc(cw - 8 - mx(m(11)), ch / 2, 5, 0, Math.PI * 2);
   x.fill();
 
   // 角球弧 1m
