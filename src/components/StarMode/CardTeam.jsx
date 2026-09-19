@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { game } from '../../engine/engine.js';
 import { useGame } from '../../engine/store.js';
 import { FORMATIONS, STAR_CARDS_DEDUP } from '../../engine/data.js';
-import { POS_EMOJI, POS_NAME, rarity, rarityBorder } from './cards.js';
+import { POS_EMOJI, POS_NAME } from './cards.js';
+import StarCard from './StarCard.jsx';
 
 const FORMS = ['4-3-3','4-4-2','3-5-2'];
 
@@ -121,14 +122,7 @@ export default function CardTeam(){
 
       <div className="ct-grid">
         {shown.map(c=>(
-          <button key={c.uid||c.id} className={`star-card mini r-${rarity(c.rating)}${inStart(c)?' picked':''}`}
-            style={{ background: rarityBorder(rarity(c.rating)) }} onClick={()=>toggle(c)}>
-            <div className="sc-top"><span className="sc-rating">{c.rating}</span><span className="sc-pos">{POS_EMOJI[c.pos]}</span></div>
-            <div className="sc-emoji">{POS_EMOJI[c.pos]}</div>
-            <div className="sc-name">{c.name}</div>
-            <div className="sc-club">{c.club||''}</div>
-            {inStart(c) && <div className="sc-picked">首发 ✓</div>}
-          </button>
+          <StarCard key={c.uid||c.id} card={c} mini showStats={false} picked={inStart(c)} onClick={()=>toggle(c)} />
         ))}
         {shown.length===0 && <p className="ct-empty">该位置还没有卡片，去抽卡吧。</p>}
       </div>
