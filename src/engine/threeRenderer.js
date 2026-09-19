@@ -286,8 +286,20 @@ function buildKitMask(mesh, image) {
   const ctr = latAxes.map((a) => (mn[a] + mx[a]) / 2);
   const height = ext[up] || 1;
   const mask = new Uint8Array(W * H);
+  const stripeBuf = new Float32Array(W * H);  // 横向坐标 -1..1（用于竖条纹）
+  const heightBuf = new Float32Array(W * H);  // 身高比例 0..1（用于格子）
+  // 宽度轴：躯干横向（条纹沿它环绕身体）
+  const widthAxis = latAxes[ext[latAxes[0]] >= ext[latAxes[1]] ? 0 : 1];
+  const widthCtr = (mn[widthAxis] + mx[widthAxis]) / 2;
+  const widthHalf = (ext[widthAxis] || 1) / 2;
+  const vStripe = new Float32Array(n);
+  const vHeight = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    vStripe[i] = (wp[i * 3 + widthAxis] - widthCtr) / widthHalf;
+    vHeight[i] = (wp[i * 3 + up] - mn[up]) / height;
+  }
 
-  const fillTri = (p0, p1, p2, cls) => {
+  const fillTri = (p0, p1, p2, cls, s0, s1, s2, h0, h1, h2) => {
     const minX = Math.max(0, Math.floor(Math.min(p0[0], p1[0], p2[0])));
     const maxX = Math.min(W - 1, Math.ceil(Math.max(p0[0], p1[0], p2[0])));
     const minY = Math.max(0, Math.floor(Math.min(p0[1], p1[1], p2[1])));
@@ -302,7 +314,10 @@ function buildKitMask(mesh, image) {
         const w1 = ((p2[1] - p0[1]) * (px - p2[0]) + (p0[0] - p2[0]) * (py - p2[1])) / den;
         const w2 = 1 - w0 - w1;
         if (w0 < -0.06 || w1 < -0.06 || w2 < -0.06) continue;
-        mask[y * W + x] = cls;
+        const k = y * W + x;
+        mask[k] = cls;
+        stripeBuf[k] = w0 * s0 + w1 * s1 + w2 * s2;
+        heightBuf[k] = w0 * h0 + w1 * h1 + w2 * h2;
       }
     }
   };
@@ -330,11 +345,15 @@ function buildKitMask(mesh, image) {
     if (tf >= 0.04 && tf < 0.22 && lateral < 0.20) cls = 1;             // 球袜
     else if (tf >= 0.36 && tf < 0.56 && lateral < 0.24) cls = 2;        // 短裤
     else if (tf >= 0.54 && tf < 0.86 && lateral < 0.23) cls = 3;        // 上衣躯干
-    else if (tf >= 0.72 && tf < 0.86 && lateral < 0.36) cls = 3;        // 短袖
+    else if (tf >= 0.72 && tf < 0.86 && lateral < 0.36) cls = 4;        // 短袖
     if (!cls) continue;
-    fillTri(corner(a), corner(b), corner(c), cls);
+    fillTri(
+      corner(a), corner(b), corner(c), cls,
+      vStripe[a], vStripe[b], vStripe[c],
+      vHeight[a], vHeight[b], vHeight[c]
+    );
   }
-  return { mask, W, H };
+  return { mask, stripeBuf, heightBuf, W, H };
 }
 
 // 用遮罩给贴图上球衣颜色（保留原贴图的明暗/褶皱）
@@ -346,11 +365,34 @@ function makeKitTexture(image, maskInfo, palette) {
   cx.drawImage(image, 0, 0, maskInfo.W, maskInfo.H);
   const img = cx.getImageData(0, 0, maskInfo.W, maskInfo.H);
   const d = img.data;
-  const cols = [null, palette.socks, palette.shorts, palette.jersey];
+  const patternHex = (i) => {
+    const m = maskInfo.stripeBuf[i];
+    const t = maskInfo.heightBuf[i];
+    const count = palette.stripeCount || 6;
+    switch (palette.pattern) {
+      case 'vstripes': {
+        const k = Math.floor((m * 0.5 + 0.5) * count);
+        return (k % 2 === 0) ? palette.jersey : palette.alt;
+      }
+      case 'checker': {
+        const kx = Math.floor((m * 0.5 + 0.5) * count);
+        const ky = Math.floor(t * count * 0.9);
+        return ((kx + ky) % 2 === 0) ? palette.jersey : palette.alt;
+      }
+      case 'band':
+        return Math.abs(m) < (palette.stripeWidth || 0.14) ? palette.alt : palette.jersey;
+      default:
+        return palette.jersey;
+    }
+  };
   for (let i = 0; i < maskInfo.mask.length; i++) {
     const cls = maskInfo.mask[i];
     if (!cls) continue;
-    const hex = cols[cls];
+    let hex;
+    if (cls === 1) hex = palette.socks;
+    else if (cls === 2) hex = palette.shorts;
+    else if (cls === 4) hex = palette.sleeves || patternHex(i);
+    else hex = patternHex(i);
     const k = i * 4;
     const lum = (d[k] * 0.299 + d[k + 1] * 0.587 + d[k + 2] * 0.114) / 255;
     const shade = Math.max(0.45, Math.min(1.16, lum / 0.66));
@@ -587,8 +629,26 @@ function buildKits(defs) {
   kitDefs = defs;
   kitMaterials = [0, 1].map((team) => {
     const t = defs[team] || {};
-    const home = { jersey: hexNum(t.jersey), shorts: hexNum(t.shorts), socks: hexNum(t.socks) };
-    const gk = { jersey: hexNum(t.gkJersey), shorts: hexNum(t.gkShorts), socks: hexNum(t.gkJersey) };
+    const home = {
+      jersey: hexNum(t.jersey),
+      alt: hexNum(t.alt),
+      pattern: t.pattern || 'solid',
+      stripeCount: t.stripeCount || 6,
+      stripeWidth: t.stripeWidth || 0.14,
+      shorts: hexNum(t.shorts),
+      socks: hexNum(t.socks),
+      sleeves: t.sleeves ? hexNum(t.sleeves) : 0,
+    };
+    const gk = {
+      jersey: hexNum(t.gkJersey),
+      alt: hexNum(t.gkJersey),
+      pattern: 'solid',
+      stripeCount: 6,
+      stripeWidth: 0.14,
+      shorts: hexNum(t.gkShorts),
+      socks: hexNum(t.gkJersey),
+      sleeves: 0,
+    };
     return [home, gk].map((palette) => {
       const m = kitBaseMat.clone();
       m.map = makeKitTexture(kitBaseMat.map.image, kitMaskInfo, palette);
@@ -607,7 +667,7 @@ function buildKits(defs) {
 // 对局配置变化时重建球衣（模板未就绪则先记住配置）
 function ensureTeamKits(defs) {
   if (!defs || !defs[0] || !defs[1]) return;
-  const sig = defs.map((t) => [t.name, t.jersey, t.shorts, t.socks, t.gkJersey, t.crest].join('|')).join('~');
+  const sig = defs.map((t) => [t.name, t.jersey, t.shorts, t.socks, t.gkJersey, t.crest, t.pattern, t.alt, t.stripeCount, t.sleeves].join('|')).join('~');
   if (sig === kitSig && kitMaterials) return;
   kitSig = sig;
   kitDefs = defs;

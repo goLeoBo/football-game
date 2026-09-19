@@ -140,19 +140,19 @@ export const AVATAR_COLORS = ['#0068a8','#a50044','#c8102e','#6cabdd','#dc052d',
 export const TEAM_KIT = {
   // 俱乐部
   '皇家马德里': ['#ffffff', '#ffffff', '#1b1b1b'],
-  '巴塞罗那': ['#a50044', '#004d98', '#a50044'],
+  '巴塞罗那': ['#a50044', '#004d98', '#a50044', { pattern: 'vstripes', alt: '#004d98', count: 5 }],
   '拜仁慕尼黑': ['#dc052d', '#dc052d', '#dc052d'],
   '利物浦': ['#c8102e', '#c8102e', '#c8102e'],
   '曼城': ['#6cabdd', '#1c2c5b', '#6cabdd'],
-  '巴黎圣日耳曼': ['#004170', '#004170', '#004170'],
-  '尤文图斯': ['#ffffff', '#1b1b1b', '#ffffff'],
-  'AC米兰': ['#fb090b', '#1b1b1b', '#fb090b'],
-  '国际米兰': ['#0068a8', '#1b1b1b', '#0068a8'],
-  '阿森纳': ['#ef0107', '#ffffff', '#ef0107'],
+  '巴黎圣日耳曼': ['#004170', '#004170', '#004170', { pattern: 'band', alt: '#ffffff', width: 0.13 }],
+  '尤文图斯': ['#ffffff', '#1b1b1b', '#ffffff', { pattern: 'vstripes', alt: '#1b1b1b', count: 6 }],
+  'AC米兰': ['#fb090b', '#1b1b1b', '#fb090b', { pattern: 'vstripes', alt: '#1b1b1b', count: 6 }],
+  '国际米兰': ['#0068a8', '#1b1b1b', '#0068a8', { pattern: 'vstripes', alt: '#1b1b1b', count: 6 }],
+  '阿森纳': ['#ef0107', '#ffffff', '#ef0107', { sleeves: '#ffffff' }],
   '哈尔滨市第十四中学校': ['#1f6feb', '#ffffff', '#1f6feb'],
   // 国家队
   '巴西': ['#ffdf00', '#009c3b', '#ffdf00'],
-  '阿根廷': ['#75aadb', '#ffffff', '#75aadb'],
+  '阿根廷': ['#75aadb', '#ffffff', '#75aadb', { pattern: 'vstripes', alt: '#ffffff', count: 6 }],
   '法国': ['#21304d', '#ffffff', '#c8102e'],
   '英格兰': ['#ffffff', '#1b2a4a', '#ffffff'],
   '西班牙': ['#c60b1e', '#1b2a4a', '#c60b1e'],
@@ -161,7 +161,7 @@ export const TEAM_KIT = {
   '意大利': ['#0068a8', '#ffffff', '#0068a8'],
   '荷兰': ['#ff6a13', '#1b1b1b', '#ff6a13'],
   '比利时': ['#c8102e', '#1b1b1b', '#c8102e'],
-  '克罗地亚': ['#ffffff', '#c8102e', '#ffffff'],
+  '克罗地亚': ['#ffffff', '#1b2a4a', '#ffffff', { pattern: 'checker', alt: '#c8102e', count: 6 }],
   '墨西哥': ['#006847', '#ffffff', '#006847'],
   '乌拉圭': ['#75aadb', '#1b1b1b', '#75aadb'],
   '哥伦比亚': ['#fcd116', '#003893', '#fcd116'],
@@ -225,6 +225,7 @@ function fallbackKit(name) {
 // 解析球队球衣：返回上衣/短裤/球袜与门将配色
 export function resolveTeamKit(name) {
   const kit = TEAM_KIT[name] || fallbackKit(name);
+  const opt = Array.isArray(kit[3]) ? null : (kit[3] || {});
   const jersey = hexToRgb(kit[0]);
   // 门将球衣选一个与主队颜色差异最大的
   let gkJersey = GK_JERSEYS[0];
@@ -238,6 +239,11 @@ export function resolveTeamKit(name) {
     jersey: kit[0],
     shorts: kit[1],
     socks: kit[2],
+    sleeves: opt.sleeves || '',
+    pattern: opt.pattern || 'solid',
+    alt: opt.alt || kit[0],
+    stripeCount: opt.count || 6,
+    stripeWidth: opt.width || 0.14,
     gkJersey,
     gkShorts: '#23272e',
   };
