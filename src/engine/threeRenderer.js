@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import playerUrl from '../assets/player.glb?url';
 
 // 3D 画面渲染器：只负责把引擎状态可视化，玩法/AI/物理仍在 engine.js 中。
@@ -674,7 +675,44 @@ function upgradePlayerMeshes() {
   });
 }
 
-// 立体看台：混凝土台阶 + 顶棚 + 立体观众（身体 + 头）
+// 自制 LED 广告画面（不使用真实品牌，避免版权问题）
+function makeAdTextures() {
+  const ads = [
+    { bg: ['#0b3d91', '#0a2a63'], fg: '#ffffff', text: '绿茵对决', sub: 'GREEN PITCH 3D' },
+    { bg: ['#c8102e', '#7a0a1c'], fg: '#ffffff', text: '哈十四中', sub: 'HARBIN NO.14' },
+    { bg: ['#0f7a4a', '#064a2c'], fg: '#ffffff', text: 'FOOTBALL LIVE', sub: 'MATCH DAY' },
+    { bg: ['#f2c14e', '#c98a12'], fg: '#1b1b1b', text: 'KICKOFF', sub: 'SPORT ENERGY' },
+    { bg: ['#111827', '#374151'], fg: '#ffd60a', text: 'WORLD CUP', sub: 'TOURNAMENT' },
+    { bg: ['#6d28d9', '#3b0f80'], fg: '#ffffff', text: '绿茵 TV', sub: 'LIVE 4K' },
+  ];
+  return ads.map((ad) => {
+    const cvs = document.createElement('canvas');
+    cvs.width = 512;
+    cvs.height = 256;
+    const c = cvs.getContext('2d');
+    const grad = c.createLinearGradient(0, 0, 512, 256);
+    grad.addColorStop(0, ad.bg[0]);
+    grad.addColorStop(1, ad.bg[1]);
+    c.fillStyle = grad;
+    c.fillRect(0, 0, 512, 256);
+    c.strokeStyle = 'rgba(255,255,255,.5)';
+    c.lineWidth = 10;
+    c.strokeRect(8, 8, 496, 240);
+    c.fillStyle = ad.fg;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.font = 'bold 74px "PingFang SC", "Microsoft YaHei", sans-serif';
+    c.fillText(ad.text, 256, 116);
+    c.font = '600 30px sans-serif';
+    c.globalAlpha = 0.9;
+    c.fillText(ad.sub, 256, 186);
+    const tex = new THREE.CanvasTexture(cvs);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  });
+}
+
+// 立体看台：混凝土台阶 + 过道 + 顶棚桁架 + 灯光塔 + LED 广告牌 + 立体观众
 function buildStadium() {
   const g = new THREE.Group();
   const rows = lowSpec ? 7 : 12;
@@ -683,6 +721,7 @@ function buildStadium() {
   const baseGap = 26;       // 看台离边线的距离
   const concrete = new THREE.MeshStandardMaterial({ color: 0x8d949c, roughness: 0.95 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x4a5058, roughness: 0.95 });
+  const stairMat = new THREE.MeshStandardMaterial({ color: 0xb9c0c7, roughness: 0.9 });
   const unitBox = new THREE.BoxGeometry(1, 1, 1);
 
   const longLen = FW + baseGap * 2;
@@ -691,6 +730,7 @@ function buildStadium() {
   const seats = [];
 
   const addTier = (len, cx, cz, along, dir) => {
+    const faceYaw = along === 'x' ? (dir < 0 ? 0 : Math.PI) : (dir < 0 ? Math.PI / 2 : -Math.PI / 2);
     for (let r = 0; r < rows; r++) {
       const y = r * rowH + rowH / 2;
       const out = baseGap + (r + 0.5) * rowD;
@@ -705,12 +745,26 @@ function buildStadium() {
       g.add(step);
       const topY = (r + 1) * rowH;
       const n = Math.floor(len / seatW);
+      const aisleEvery = 16;
       for (let i = 0; i < n; i++) {
-        if (Math.random() < 0.07) continue; // 过道/空位
+        if (i % aisleEvery === aisleEvery - 1 || Math.random() < 0.05) continue; // 过道/空位
         const t = -len / 2 + (i + 0.5) * seatW + (Math.random() - 0.5) * 1.6;
         seats.push(along === 'x'
-          ? [cx + t, topY, cz + dir * (out + 1.5)]
-          : [cx + dir * (out + 1.5), topY, cz + t]);
+          ? { x: cx + t, y: topY, z: cz + dir * (out + 1.5), yaw: faceYaw, s: 0.92 + Math.random() * 0.2 }
+          : { x: cx + dir * (out + 1.5), y: topY, z: cz + t, yaw: faceYaw, s: 0.92 + Math.random() * 0.2 });
+      }
+      // 过道台阶
+      for (let i = aisleEvery - 1; i < n; i += aisleEvery) {
+        const t = -len / 2 + (i + 0.5) * seatW;
+        const stair = new THREE.Mesh(unitBox, stairMat);
+        if (along === 'x') {
+          stair.scale.set(seatW * 0.8, rowH * 0.35, rowD * 1.05);
+          stair.position.set(cx + t, topY - rowH * 0.15, cz + dir * (out + 0.5));
+        } else {
+          stair.scale.set(rowD * 1.05, rowH * 0.35, seatW * 0.8);
+          stair.position.set(cx + dir * (out + 0.5), topY - rowH * 0.15, cz + t);
+        }
+        g.add(stair);
       }
     }
   };
@@ -751,50 +805,146 @@ function buildStadium() {
     g.add(c1, c2);
   }
 
-  // 场边广告板
-  const adColors = [0xffffff, 0x1f6feb, 0xe63946, 0x22c55e, 0xf2c14e];
-  for (let i = 0; i < 22; i++) {
-    const w = FW / 22;
-    const board = new THREE.Mesh(unitBox, new THREE.MeshStandardMaterial({ color: adColors[i % adColors.length], roughness: 0.6 }));
-    board.scale.set(w - 4, 4, 2);
-    board.position.set(w * (i + 0.5), 2, -baseGap + 12);
-    g.add(board);
-    const board2 = board.clone();
-    board2.position.z = FH + baseGap - 12;
-    g.add(board2);
+  // 顶棚桁架（斜撑）
+  const trussMat = new THREE.MeshStandardMaterial({ color: 0x596069, roughness: 0.75, metalness: 0.25 });
+  const trussGeo = new THREE.BoxGeometry(1, 1, 1);
+  const addTruss = (len, cx, cz, along, dir) => {
+    for (let t = -len / 2; t <= len / 2; t += 130) {
+      const beam = new THREE.Mesh(trussGeo, trussMat);
+      const beamLen = Math.hypot(rows * rowD, roofY - rows * rowH);
+      const midZ = cz + dir * (baseGap + rows * rowD * 0.5);
+      const midY = (rows * rowH + roofY) / 2;
+      if (along === 'x') {
+        beam.scale.set(3, 3, beamLen);
+        beam.position.set(cx + t, midY, midZ);
+        beam.rotation.x = Math.atan2(rows * rowD, roofY - rows * rowH) * dir;
+      } else {
+        beam.scale.set(beamLen, 3, 3);
+        beam.position.set(cx + dir * (baseGap + rows * rowD * 0.5), midY, cz + t);
+        beam.rotation.z = -Math.atan2(rows * rowD, roofY - rows * rowH) * dir;
+      }
+      g.add(beam);
+    }
+  };
+  addTruss(longLen, FW / 2, 0, 'x', -1);
+  addTruss(longLen, FW / 2, FH, 'x', 1);
+  addTruss(shortLen, 0, FH / 2, 'z', -1);
+  addTruss(shortLen, FW, FH / 2, 'z', 1);
+
+  // 场边 LED 广告牌（自制广告画面）
+  const adTextures = makeAdTextures();
+  const boardSideMat = new THREE.MeshStandardMaterial({ color: 0x101418, roughness: 0.7 });
+  const boardMats = adTextures.map((map) => new THREE.MeshBasicMaterial({ map, toneMapped: false }));
+  const boardH = 6;
+  const boardD = 2.4;
+  const segs = 26;
+  const boardGeo = new THREE.BoxGeometry(1, 1, 1);
+  for (let i = 0; i < segs; i++) {
+    const w = FW / segs;
+    const mats = [boardSideMat, boardSideMat, boardSideMat, boardSideMat, boardMats[i % boardMats.length], boardMats[i % boardMats.length]];
+    const b = new THREE.Mesh(boardGeo, mats);
+    b.scale.set(w - 1, boardH, boardD);
+    b.position.set(w * (i + 0.5), boardH / 2 + 1, -baseGap + 14);
+    g.add(b);
+    const b2 = b.clone();
+    b2.position.z = FH + baseGap - 14;
+    g.add(b2);
+  }
+  // 底线后方广告牌
+  for (let i = 0; i < 10; i++) {
+    const w = FH / 10;
+    const mats = [boardSideMat, boardSideMat, boardSideMat, boardSideMat, boardMats[i % boardMats.length], boardMats[i % boardMats.length]];
+    const b = new THREE.Mesh(boardGeo, mats);
+    b.scale.set(boardD, boardH, w - 1);
+    b.position.set(-baseGap + 14, boardH / 2 + 1, w * (i + 0.5));
+    g.add(b);
+    const b2 = b.clone();
+    b2.position.x = FW + baseGap - 14;
+    g.add(b2);
   }
 
-  // 观众：身体 + 头部两个实例化网格
-  const bodyGeo = new THREE.BoxGeometry(4.6, 8.2, 5.4);
-  const headGeo = new THREE.SphereGeometry(2.1, 8, 6);
-  const bodyMat = new THREE.MeshLambertMaterial({});
-  const headMat = new THREE.MeshLambertMaterial({});
-  const bodyMesh = new THREE.InstancedMesh(bodyGeo, bodyMat, seats.length);
-  const headMesh = new THREE.InstancedMesh(headGeo, headMat, seats.length);
-  const shirtColors = [0xd7e3f4, 0xf2c14e, 0xdf5e5e, 0x6bbf8a, 0x4f86c6, 0xc08497, 0xffffff, 0x2b3a55, 0x8b5cf6];
+  // 灯光塔（四角）
+  const pylonMat = new THREE.MeshStandardMaterial({ color: 0x3b4149, roughness: 0.7, metalness: 0.3 });
+  const lampMat = new THREE.MeshBasicMaterial({ color: 0xfff6d5, toneMapped: false });
+  const pylonH = roofY + 120;
+  const pylonPos = [
+    [-70, -70], [FW + 70, -70], [-70, FH + 70], [FW + 70, FH + 70],
+  ];
+  pylonPos.forEach(([px, pz]) => {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(7, 11, pylonH, 10), pylonMat);
+    pole.position.set(px, pylonH / 2, pz);
+    g.add(pole);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(70, 34, 10), pylonMat);
+    head.position.set(px, pylonH - 6, pz);
+    head.lookAt(FW / 2, 0, FH / 2);
+    g.add(head);
+    const lamp = new THREE.Mesh(new THREE.BoxGeometry(62, 26, 3), lampMat);
+    lamp.position.copy(head.position);
+    lamp.quaternion.copy(head.quaternion);
+    lamp.translateZ(6);
+    g.add(lamp);
+  });
+
+  // 角旗
+  const flagPoleMat = new THREE.MeshStandardMaterial({ color: 0xf2f4f6, roughness: 0.6 });
+  const flagMat = new THREE.MeshBasicMaterial({ color: 0xffd60a, side: THREE.DoubleSide, toneMapped: false });
+  [[20, 20], [FW - 20, 20], [20, FH - 20], [FW - 20, FH - 20]].forEach(([fx, fz]) => {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 22, 6), flagPoleMat);
+    pole.position.set(fx, 11, fz);
+    g.add(pole);
+    const flag = new THREE.Mesh(new THREE.PlaneGeometry(9, 6), flagMat);
+    flag.position.set(fx + 4.5, 19, fz);
+    g.add(flag);
+  });
+
+  // 观众：坐姿小人（上半身+手臂 / 大腿+小腿 / 头 / 头发），实例化渲染
+  const upperGeo = mergeGeometries([
+    new THREE.BoxGeometry(3.6, 4.8, 3.0).translate(0, 5.1, 0),
+    new THREE.BoxGeometry(1.3, 3.6, 1.8).translate(-2.3, 5.3, 0.2),
+    new THREE.BoxGeometry(1.3, 3.6, 1.8).translate(2.3, 5.3, 0.2),
+  ]);
+  const lowerGeo = mergeGeometries([
+    new THREE.BoxGeometry(1.8, 1.7, 3.8).translate(-1.0, 2.8, 1.6),
+    new THREE.BoxGeometry(1.8, 1.7, 3.8).translate(1.0, 2.8, 1.6),
+    new THREE.BoxGeometry(1.6, 3.2, 1.6).translate(-1.0, 1.3, 3.3),
+    new THREE.BoxGeometry(1.6, 3.2, 1.6).translate(1.0, 1.3, 3.3),
+  ]);
+  const headGeo = new THREE.SphereGeometry(2.05, 7, 5).translate(0, 8.7, 0);
+  const hairGeo = new THREE.SphereGeometry(2.15, 7, 5).scale(1, 0.62, 1).translate(0, 9.15, -0.25);
+  const upperMesh = new THREE.InstancedMesh(upperGeo, new THREE.MeshLambertMaterial({}), seats.length);
+  const lowerMesh = new THREE.InstancedMesh(lowerGeo, new THREE.MeshLambertMaterial({}), seats.length);
+  const headMesh = new THREE.InstancedMesh(headGeo, new THREE.MeshLambertMaterial({}), seats.length);
+  const hairMesh = new THREE.InstancedMesh(hairGeo, new THREE.MeshLambertMaterial({}), seats.length);
+  const shirtColors = [0xd7e3f4, 0xf2c14e, 0xdf5e5e, 0x6bbf8a, 0x4f86c6, 0xc08497, 0xffffff, 0x2b3a55, 0x8b5cf6, 0xe07a5f, 0x2a9d8f, 0x1d3557];
+  const pantsColors = [0x2b3a55, 0x1f2937, 0x374151, 0x6b7280, 0xe5e7eb, 0x3f3f46, 0x1e3a8a];
   const skinColors = [0xf1c9a5, 0xd9a066, 0xa9714b, 0x7a4a2b, 0xf7ddc2];
+  const hairColors = [0x1b1b1b, 0x2f2119, 0x5b3a1e, 0x8b6b3e, 0xd9d2c5, 0x111827];
   const dummy = new THREE.Object3D();
   const color = new THREE.Color();
-  seats.forEach(([x, y, z], i) => {
-    dummy.position.set(x, y + 4.1, z);
-    dummy.rotation.y = (i % 2 ? 1 : -1) * 0.12;
+  seats.forEach((s, i) => {
+    dummy.position.set(s.x, s.y, s.z);
+    dummy.rotation.set(0, s.yaw, 0);
+    dummy.scale.setScalar(s.s);
     dummy.updateMatrix();
-    bodyMesh.setMatrixAt(i, dummy.matrix);
-    color.setHex(shirtColors[(i * 7 + Math.floor(x) + Math.floor(z)) % shirtColors.length]);
-    bodyMesh.setColorAt(i, color);
-
-    dummy.position.set(x, y + 10.4, z);
-    dummy.rotation.y = 0;
-    dummy.updateMatrix();
+    upperMesh.setMatrixAt(i, dummy.matrix);
+    lowerMesh.setMatrixAt(i, dummy.matrix);
     headMesh.setMatrixAt(i, dummy.matrix);
-    color.setHex(skinColors[(i * 3 + Math.floor(z)) % skinColors.length]);
+    hairMesh.setMatrixAt(i, dummy.matrix);
+    const seed = i * 7 + Math.floor(s.x) + Math.floor(s.z);
+    color.setHex(shirtColors[seed % shirtColors.length]);
+    upperMesh.setColorAt(i, color);
+    color.setHex(pantsColors[(seed * 3) % pantsColors.length]);
+    lowerMesh.setColorAt(i, color);
+    color.setHex(skinColors[(seed * 5) % skinColors.length]);
     headMesh.setColorAt(i, color);
+    color.setHex(hairColors[(seed * 11) % hairColors.length]);
+    hairMesh.setColorAt(i, color);
   });
-  bodyMesh.instanceMatrix.needsUpdate = true;
-  headMesh.instanceMatrix.needsUpdate = true;
-  if (bodyMesh.instanceColor) bodyMesh.instanceColor.needsUpdate = true;
-  if (headMesh.instanceColor) headMesh.instanceColor.needsUpdate = true;
-  g.add(bodyMesh, headMesh);
+  [upperMesh, lowerMesh, headMesh, hairMesh].forEach((m) => {
+    m.instanceMatrix.needsUpdate = true;
+    if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    g.add(m);
+  });
   return g;
 }
 
