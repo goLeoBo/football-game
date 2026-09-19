@@ -2,15 +2,25 @@ import { useEffect, useRef, useState } from 'react';
 import { game } from '../../engine/engine.js';
 import coverVideo from '../../assets/cover.mp4';
 
+// 视频源优先级：jsDelivr CDN（国内相对快）→ 备用 CDN → 随包资源（GitHub Pages）
+const SOURCES = [
+  'https://cdn.jsdelivr.net/gh/goLeoBo/football-game@main/src/assets/cover.mp4',
+  'https://testingcf.jsdelivr.net/gh/goLeoBo/football-game@main/src/assets/cover.mp4',
+  coverVideo,
+];
+
 // 世界杯封面动画：视频开场 + CSS 动画叠加（复刻原 showWCCover）
 export default function Cover() {
   const [opacity, setOpacity] = useState(1);
   const [needTap, setNeedTap] = useState(false);
+  const [videoSrc, setVideoSrc] = useState(SOURCES[0]);
   const advanced = useRef(false);
   const videoRef = useRef(null);
   const playingRef = useRef(false);
   const userWantsPlayRef = useRef(false);
   const fallbackTimerRef = useRef(null);
+  const srcIdxRef = useRef(0);
+  let stallTimer = null;
 
   const proceed = () => {
     if (advanced.current) return;
@@ -49,11 +59,18 @@ export default function Cover() {
       const p = video.play();
       if (p && typeof p.catch === 'function') p.catch(() => {});
     };
+    const useNextSource = () => {
+      if (srcIdxRef.current >= SOURCES.length - 1) return false;
+      srcIdxRef.current += 1;
+      setVideoSrc(SOURCES[srcIdxRef.current]);
+      return true;
+    };
     const onLoadedData = () => { tryPlay(); };
     const onCanPlay = () => { tryPlay(); };
     const onPlaying = () => {
       playingRef.current = true;
       setNeedTap(false);
+      if (stallTimer) clearTimeout(stallTimer);
       // 用户手动点播成功后，撤掉自动跳过，让视频自然播完或点击跳过；
       // 自动播放成功时保留到点自动进入的逻辑。
       if (userWantsPlayRef.current && fallbackTimerRef.current) {
@@ -62,7 +79,7 @@ export default function Cover() {
       }
     };
     const onError = () => {
-      if (!advanced.current) proceed();
+      if (!useNextSource() && !advanced.current) proceed();
     };
     const onEnded = () => { setTimeout(proceed, 400); };
 
@@ -71,11 +88,16 @@ export default function Cover() {
     video.addEventListener('playing', onPlaying);
     video.addEventListener('error', onError);
     video.addEventListener('ended', onEnded);
+    // 6 秒还没拿到数据就换下一个视频源（应对 CDN 被墙/网络慢）
+    stallTimer = setTimeout(() => {
+      if (!playingRef.current && !advanced.current && video.readyState === 0) useNextSource();
+    }, 6000);
     tryPlay();
 
     return () => {
       clearTimeout(autoAdvanceTimer);
       clearTimeout(tipTimer);
+      clearTimeout(stallTimer);
       video.removeEventListener('loadeddata', onLoadedData);
       video.removeEventListener('canplay', onCanPlay);
       video.removeEventListener('playing', onPlaying);
@@ -108,7 +130,7 @@ export default function Cover() {
       <video
         ref={videoRef}
         className="wc-cover-video"
-        src={coverVideo}
+        src={videoSrc}
         playsInline
         webkit-playsinline=""
         x5-playsinline=""
