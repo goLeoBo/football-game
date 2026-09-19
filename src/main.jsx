@@ -7,3 +7,12 @@ import './styles/legacy.css';
 // 该游戏引擎在 useEffect 中做一次性 DOM 绑定与 requestAnimationFrame 循环，
 // StrictMode 的开发期双重挂载会导致引擎绑定到已卸载的 canvas。
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+// ====== PWA：注册 Service Worker（仅生产构建生效，避免干扰本地开发）======
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('./sw.js', { scope: './', updateViaCache: 'none' })
+      .catch(() => { /* 注册失败不影响游戏运行 */ });
+  });
+}
