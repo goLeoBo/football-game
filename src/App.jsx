@@ -8,6 +8,7 @@ import PenaltyHud from './components/PenaltyHud.jsx';
 import Overlay from './components/Overlay.jsx';
 import Prematch from './components/Prematch.jsx';
 import WorldCup from './components/WorldCup/index.jsx';
+import RotateHint from './components/RotateHint.jsx';
 
 export default function App() {
   const { screen, touch, debug, activeName } = useGame();
@@ -47,6 +48,9 @@ export default function App() {
       {screen === 'prematch' && <Prematch />}
 
       {screen === 'wc-cover' && <WorldCup.Cover />}
+
+      {/* 比赛进行中（screen 为 null）竖屏时提示转横屏；菜单/面板不受影响 */}
+      {screen === null && <RotateHint />}
     </div>
   );
 }

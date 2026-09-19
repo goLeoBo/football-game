@@ -32,9 +32,9 @@
   .big.red{color:#e63946}.big.blue{color:#3a86ff}.big.draw{color:#ffd60a}
   #mctrl{position:absolute;inset:0;z-index:6;pointer-events:none;display:none}
   #mctrl.show{display:block}
-  #stick{position:absolute;left:24px;bottom:24px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.2);pointer-events:auto}
+  #stick{position:absolute;left:calc(24px + env(safe-area-inset-left, 0px));bottom:calc(24px + env(safe-area-inset-bottom, 0px));width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.2);pointer-events:auto}
   #stickKnob{position:absolute;left:50%;top:50%;width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.4);transform:translate(-50%,-50%);pointer-events:none}
-  #mbtns{position:absolute;right:24px;bottom:30px;display:flex;flex-direction:column;gap:12px;pointer-events:none}
+  #mbtns{position:absolute;right:calc(24px + env(safe-area-inset-right, 0px));bottom:calc(30px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:12px;pointer-events:none}
   #mbtns button{width:72px;height:72px;border-radius:50%;border:none;font-size:14px;font-weight:800;color:#fff;pointer-events:auto;box-shadow:0 4px 14px rgba(0,0,0,.4)}
   #mbtns button:active{transform:scale(.9)}
   #btnPass{background:rgba(58,134,255,.85)}
@@ -274,3 +274,11 @@
 .btn-star{width:100%;padding:14px 0;font-size:17px;font-weight:800;letter-spacing:1px;color:#fff;border:none;border-radius:999px;cursor:pointer;background:linear-gradient(135deg,#3a86ff,#1565c0);box-shadow:0 6px 20px rgba(58,134,255,.45);margin:0 0 10px 0;display:block!important;visibility:visible!important;opacity:1!important;z-index:9999!important}
 .btn-star:active{transform:scale(.97)}
 @media(max-width:600px){.menu-page{padding:8px 10px 12px;gap:8px}.menu-page h1{font-size:26px}.menu-page .tag{font-size:11px}.menu-page p{font-size:13px}.menu-page .sel-group{margin:4px 0}.menu-page .keys{font-size:11px;gap:6px 12px}.menu-page .small{font-size:10px}.menu-page .btn-star{font-size:15px;padding:12px 0}.menu-page .btns{margin-top:4px}}
+
+/* ====== 竖屏提示（比赛时提示用户转横屏） ====== */
+.rotate-hint{position:fixed;inset:0;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;padding:24px;background:radial-gradient(ellipse at center,#0a1e3a 0%,#000814 75%);color:#eaf7ff}
+.rh-phone{position:relative;width:62px;height:108px;border:3px solid #7dffb0;border-radius:12px;box-shadow:0 0 26px rgba(125,255,176,.35);animation:rhTurn 1.9s ease-in-out infinite}
+.rh-phone::after{content:"";position:absolute;left:50%;bottom:6px;transform:translateX(-50%);width:22px;height:3px;border-radius:2px;background:rgba(125,255,176,.7)}
+@keyframes rhTurn{0%,30%{transform:rotate(0)}70%,100%{transform:rotate(-90deg)}}
+.rh-title{font-size:19px;font-weight:800;letter-spacing:2px}
+.rh-sub{font-size:13px;color:#9fb6c9}
