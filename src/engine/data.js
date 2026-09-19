@@ -136,6 +136,113 @@ export const FLAG_BASE = 'https://flagcdn.com/';
 
 export const AVATAR_COLORS = ['#0068a8','#a50044','#c8102e','#6cabdd','#dc052d','#1c2c5b','#007a5e','#8a5a00','#5b2d8e','#0a7a8a'];
 
+// ====== 各队球衣配色（上衣 / 短裤 / 球袜）======
+export const TEAM_KIT = {
+  // 俱乐部
+  '皇家马德里': ['#ffffff', '#ffffff', '#1b1b1b'],
+  '巴塞罗那': ['#a50044', '#004d98', '#a50044'],
+  '拜仁慕尼黑': ['#dc052d', '#dc052d', '#dc052d'],
+  '利物浦': ['#c8102e', '#c8102e', '#c8102e'],
+  '曼城': ['#6cabdd', '#1c2c5b', '#6cabdd'],
+  '巴黎圣日耳曼': ['#004170', '#004170', '#004170'],
+  '尤文图斯': ['#ffffff', '#1b1b1b', '#ffffff'],
+  'AC米兰': ['#fb090b', '#1b1b1b', '#fb090b'],
+  '国际米兰': ['#0068a8', '#1b1b1b', '#0068a8'],
+  '阿森纳': ['#ef0107', '#ffffff', '#ef0107'],
+  '哈尔滨市第十四中学校': ['#1f6feb', '#ffffff', '#1f6feb'],
+  // 国家队
+  '巴西': ['#ffdf00', '#009c3b', '#ffdf00'],
+  '阿根廷': ['#75aadb', '#ffffff', '#75aadb'],
+  '法国': ['#21304d', '#ffffff', '#c8102e'],
+  '英格兰': ['#ffffff', '#1b2a4a', '#ffffff'],
+  '西班牙': ['#c60b1e', '#1b2a4a', '#c60b1e'],
+  '葡萄牙': ['#c8102e', '#046a38', '#c8102e'],
+  '德国': ['#ffffff', '#1b1b1b', '#ffffff'],
+  '意大利': ['#0068a8', '#ffffff', '#0068a8'],
+  '荷兰': ['#ff6a13', '#1b1b1b', '#ff6a13'],
+  '比利时': ['#c8102e', '#1b1b1b', '#c8102e'],
+  '克罗地亚': ['#ffffff', '#c8102e', '#ffffff'],
+  '墨西哥': ['#006847', '#ffffff', '#006847'],
+  '乌拉圭': ['#75aadb', '#1b1b1b', '#75aadb'],
+  '哥伦比亚': ['#fcd116', '#003893', '#fcd116'],
+  '美国': ['#ffffff', '#1b2a4a', '#ffffff'],
+  '瑞士': ['#d52b1e', '#ffffff', '#d52b1e'],
+  '日本': ['#0a1f7a', '#ffffff', '#0a1f7a'],
+  '摩洛哥': ['#c1272d', '#006233', '#c1272d'],
+  '丹麦': ['#c8102e', '#ffffff', '#c8102e'],
+  '塞内加尔': ['#ffffff', '#00853f', '#ffffff'],
+  '塞尔维亚': ['#c6363c', '#1b2a4a', '#c6363c'],
+  '瑞典': ['#ffcd00', '#1b2a4a', '#ffcd00'],
+  '波兰': ['#ffffff', '#dc143c', '#ffffff'],
+  '威尔士': ['#c8102e', '#ffffff', '#c8102e'],
+  '韩国': ['#c8102e', '#1b2a4a', '#c8102e'],
+  '土耳其': ['#c8102e', '#ffffff', '#c8102e'],
+  '伊朗': ['#ffffff', '#239f40', '#ffffff'],
+  '智利': ['#c8102e', '#1b2a4a', '#c8102e'],
+  '厄瓜多尔': ['#ffd100', '#003893', '#ffd100'],
+  '乌克兰': ['#ffd700', '#0057b7', '#ffd700'],
+  '尼日利亚': ['#008751', '#ffffff', '#008751'],
+  '秘鲁': ['#ffffff', '#d91023', '#ffffff'],
+  '奥地利': ['#c8102e', '#ffffff', '#c8102e'],
+  '捷克': ['#c8102e', '#1b2a4a', '#c8102e'],
+  '巴拉圭': ['#c8102e', '#1b2a4a', '#c8102e'],
+  '喀麦隆': ['#007a5e', '#c8102e', '#007a5e'],
+  '埃及': ['#c8102e', '#1b1b1b', '#c8102e'],
+  '加拿大': ['#c8102e', '#ffffff', '#c8102e'],
+  '突尼斯': ['#c8102e', '#ffffff', '#c8102e'],
+  '阿尔及利亚': ['#ffffff', '#006233', '#ffffff'],
+  '科特迪瓦': ['#ff8200', '#ffffff', '#ff8200'],
+  '哥斯达黎加': ['#c8102e', '#1b2a4a', '#c8102e'],
+  '澳大利亚': ['#ffcd00', '#00843d', '#ffcd00'],
+  '沙特阿拉伯': ['#006c35', '#ffffff', '#006c35'],
+  '南非': ['#ffb612', '#006233', '#ffb612'],
+  '卡塔尔': ['#8a1538', '#ffffff', '#8a1538'],
+  '牙买加': ['#ffcd00', '#1b1b1b', '#ffcd00'],
+  '洪都拉斯': ['#0073cf', '#ffffff', '#0073cf'],
+};
+
+const GK_JERSEYS = ['#ffd60a', '#22c55e', '#a855f7', '#f97316', '#14b8a6'];
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+// 未收录的球队：按队名生成一个稳定的颜色
+function fallbackKit(name) {
+  let h = 0;
+  for (let i = 0; i < (name || '').length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+  const toHex = (hh, s, l) => {
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
+    const m = l - c / 2;
+    const seg = hh < 60 ? [c, x, 0] : hh < 120 ? [x, c, 0] : hh < 180 ? [0, c, x] : hh < 240 ? [0, x, c] : hh < 300 ? [x, 0, c] : [c, 0, x];
+    return '#' + seg.map((v) => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join('');
+  };
+  return [toHex(h, 0.75, 0.45), '#ffffff', toHex(h, 0.75, 0.45)];
+}
+
+// 解析球队球衣：返回上衣/短裤/球袜与门将配色
+export function resolveTeamKit(name) {
+  const kit = TEAM_KIT[name] || fallbackKit(name);
+  const jersey = hexToRgb(kit[0]);
+  // 门将球衣选一个与主队颜色差异最大的
+  let gkJersey = GK_JERSEYS[0];
+  let best = -1;
+  GK_JERSEYS.forEach((hex) => {
+    const c = hexToRgb(hex);
+    const d = Math.abs(c[0] - jersey[0]) + Math.abs(c[1] - jersey[1]) + Math.abs(c[2] - jersey[2]);
+    if (d > best) { best = d; gkJersey = hex; }
+  });
+  return {
+    jersey: kit[0],
+    shorts: kit[1],
+    socks: kit[2],
+    gkJersey,
+    gkShorts: '#23272e',
+  };
+}
+
 
 // ====== 球星卡数据 ======
 // id 用于 React key；pos 与引擎位置一致；rating 决定稀有度

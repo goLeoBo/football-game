@@ -4,6 +4,7 @@ import {
   FORMATIONS, RED_POOL, BLUE_POOL, CLUBS, PM_CLUBS, PM_FORMATIONS,
   NATIONAL_TEAMS, NT_STARS, NT_FLAG, CLUB_LOGO_BASE, CLUB_LOGO,
   FLAG_BASE, AVATAR_COLORS, resolveClubLogo,
+  resolveTeamKit,
   STAR_CARDS_DEDUP, cardRarity,
 } from "./data.js";
 import { commit, getState } from "./store.js";
@@ -3240,8 +3241,10 @@ function loop(t){
   if(threeActive && mode==='match'){
     // 3D 模式：玩法/AI/物理仍由 Canvas 引擎计算，画面交给 Three.js
     const focusP = players[activeIdx] || players[0];
+    const st = getState();
     render3DFrame({
       camPanX,
+      teams: [team3DInfo(st.redName), team3DInfo(st.blueName)],
       focus: {
         x: ball.x * 0.7 + (focusP ? focusP.x : ball.x) * 0.3,
         y: ball.y * 0.65 + (focusP ? focusP.y : ball.y) * 0.35,
@@ -3271,6 +3274,18 @@ function loop(t){
 }
 
 // ====== 3D 画面切换 ======
+// 队伍球衣信息（配色 + 队徽）→ 交给 3D 渲染器画到球员身上
+function teamCrestURL(name){
+  if(!name) return '';
+  if(CLUB_LOGO[name]) return resolveClubLogo(CLUB_LOGO[name]);
+  const code = NT_FLAG[name];
+  return code ? FLAG_BASE + 'w160/' + code + '.png' : '';
+}
+function team3DInfo(name){
+  const kit = resolveTeamKit(name || '');
+  return { name: name || '', ...kit, crest: teamCrestURL(name) };
+}
+
 // 玩法/AI/物理全部复用原引擎，只把画面层切到 Three.js（失败则回退 2D）。
 function ensure3DMatch(){
   if(threeActive) return true;

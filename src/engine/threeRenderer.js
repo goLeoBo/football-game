@@ -36,8 +36,15 @@ let templateHeight = 1.7;
 let templateBaseYaw = 0;
 let templateCenter = new THREE.Vector3();
 let templateMinY = 0;
-let kitMaterials = null;        // [红队, 蓝队, 门将] 三套球衣材质
 let idleClipTime = 0;           // 跑步动画中最接近“站立”的帧
+let kitMaskInfo = null;         // 球衣区域遮罩（上衣/短裤/球袜）
+let kitBaseMat = null;          // 原材质（用于派生各队球衣材质）
+let kitMaterials = null;        // [[主队, 主队门将], [客队, 客队门将]]
+let kitCrestMats = [null, null]; // 每队队徽材质
+let kitDefs = null;             // 当前对阵的球衣配置
+let kitSig = '';                // 配置签名，变化时重建
+let crestLocalMatrix = null;    // 队徽相对胸骨的局部变换
+const crestGeo = new THREE.PlaneGeometry(0.135, 0.155);
 
 function makeFieldTexture() {
   const cw = 2048;
@@ -219,12 +226,32 @@ function ensurePlayerMeshes(n) {
   loadPlayerTemplate();
 }
 
-// 三套球衣配色：[上衣, 短裤, 球袜]
-const KIT_PALETTES = [
-  { jersey: 0xe63946, shorts: 0xf2f4f6, socks: 0xe63946 }, // 红队
-  { jersey: 0x3a86ff, shorts: 0xf2f4f6, socks: 0x3a86ff }, // 蓝队
-  { jersey: 0xffd60a, shorts: 0x23272e, socks: 0xffd60a }, // 门将
-];
+const CREST_BONE = 'Spine';   // 队徽挂在胸骨上，随身体动作
+
+function hexNum(hex) {
+  const v = parseInt(String(hex || '').replace('#', ''), 16);
+  return Number.isFinite(v) ? v : 0xffffff;
+}
+
+function findBone(root, name) {
+  let found = null;
+  root.traverse((o) => { if (!found && o.isBone && o.name === name) found = o; });
+  return found;
+}
+
+// 计算队徽相对胸骨的局部变换（模板绑定姿势下算一次，所有克隆共用）
+function computeCrestMatrix(root, forward) {
+  const bone = findBone(root, CREST_BONE);
+  if (!bone) return null;
+  bone.updateWorldMatrix(true, false);
+  const f = forward.clone().setY(0).normalize();
+  const up = new THREE.Vector3(0, 1, 0);
+  const right = new THREE.Vector3().crossVectors(up, f).normalize();
+  const p = bone.getWorldPosition(new THREE.Vector3());
+  const target = new THREE.Matrix4().makeBasis(right, up, f);
+  target.setPosition(p.clone().addScaledVector(f, 0.17).addScaledVector(up, 0.02));
+  return bone.matrixWorld.clone().invert().multiply(target);
+}
 
 // 按网格部位在贴图上生成“上衣 / 短裤 / 球袜”区域遮罩（1=球袜 2=短裤 3=上衣）
 function buildKitMask(mesh, image) {
@@ -380,20 +407,17 @@ function preparePlayerTemplate(gltf) {
     }
   });
   if (srcImage && baseMat && skinMesh) {
-    let maskInfo = null;
     try {
-      maskInfo = buildKitMask(skinMesh, srcImage);
+      kitMaskInfo = buildKitMask(skinMesh, srcImage);
     } catch (e) {
       console.warn('球衣区域识别失败，使用原贴图', e);
     }
-    kitMaterials = KIT_PALETTES.map((palette) => {
-      const m = baseMat.clone();
-      if (maskInfo) m.map = makeKitTexture(srcImage, maskInfo, palette);
-      m.roughness = 0.72;
-      m.metalness = 0.02;
-      m.needsUpdate = true;
-      return m;
-    });
+    if (kitMaskInfo) {
+      kitBaseMat = baseMat;
+      const fwd = new THREE.Vector3(Math.sin(templateBaseYaw), 0, Math.cos(templateBaseYaw));
+      crestLocalMatrix = computeCrestMatrix(root, fwd);
+      if (kitDefs) buildKits(kitDefs);
+    }
   }
   playerClip = gltf.animations && gltf.animations[0] ? gltf.animations[0] : null;
   idleClipTime = playerClip ? findIdleTime(root, playerClip) : 0;
@@ -401,9 +425,12 @@ function preparePlayerTemplate(gltf) {
   root.traverse((o) => {
     if (o.geometry) o.geometry.userData.__shared = true;
     const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
-    mats.forEach((m) => { m.userData.__shared = true; });
+    mats.forEach((m) => {
+      if (!m.userData) m.userData = {};
+      m.userData.__shared = true;
+    });
   });
-  if (kitMaterials) kitMaterials.forEach((m) => { m.userData.__shared = true; });
+  if (kitMaterials) kitMaterials.forEach((pair) => pair.forEach((m) => { if (!m.userData) m.userData = {}; m.userData.__shared = true; }));
   playerTemplate = root;
   upgradePlayerMeshes();
 }
@@ -463,7 +490,7 @@ function loadPlayerTemplate() {
   );
 }
 
-function makeAvatar(kitIndex) {
+function makeAvatar() {
   const avatar = new THREE.Group();
   const body = cloneSkinned(playerTemplate);
   const s = PLAYER_HEIGHT / templateHeight;
@@ -475,31 +502,165 @@ function makeAvatar(kitIndex) {
     o.castShadow = !lowSpec;
     o.receiveShadow = false;
     o.frustumCulled = false; // 骨骼动画不会刷新包围盒，避免被误剔除
-    const mats = Array.isArray(o.material) ? o.material : [o.material];
-    const next = mats.map((m) => (kitMaterials && kitMaterials[kitIndex] ? kitMaterials[kitIndex] : m));
-    o.material = next.length === 1 ? next[0] : next;
   });
   avatar.add(body);
   return { avatar, body };
+}
+
+// ====== 每队球衣（配色 + 队徽）======
+function kitMaterialFor(idx) {
+  if (!kitMaterials) return null;
+  const team = idx < 11 ? 0 : 1;
+  const isGK = idx === 0 || idx === 11;
+  return kitMaterials[team][isGK ? 1 : 0] || null;
+}
+
+function applyKitMaterial(body, mat) {
+  if (!mat) return;
+  body.traverse((o) => {
+    if (!o.isMesh && !o.isSkinnedMesh) return;
+    if (Array.isArray(o.material)) o.material = o.material.map(() => mat);
+    else o.material = mat;
+  });
+}
+
+function makeFallbackCrest(name, jersey) {
+  const cvs = document.createElement('canvas');
+  cvs.width = 128;
+  cvs.height = 128;
+  const c = cvs.getContext('2d');
+  c.beginPath();
+  c.arc(64, 64, 58, 0, Math.PI * 2);
+  c.fillStyle = jersey || '#1f2937';
+  c.fill();
+  c.lineWidth = 9;
+  c.strokeStyle = '#ffffff';
+  c.stroke();
+  c.fillStyle = '#ffffff';
+  c.font = 'bold 62px sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText((name || '?').slice(0, 1), 64, 68);
+  const tex = new THREE.CanvasTexture(cvs);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function crestMaterial(name, jersey) {
+  return new THREE.MeshBasicMaterial({
+    map: makeFallbackCrest(name, jersey),
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    toneMapped: false,
+  });
+}
+
+function loadCrest(teamIdx, url, name, jersey) {
+  if (!url) {
+    kitCrestMats[teamIdx] = crestMaterial(name, jersey);
+    attachCrestsToPlayers();
+    return;
+  }
+  const loader = new THREE.TextureLoader();
+  loader.setCrossOrigin('anonymous');
+  loader.load(
+    url,
+    (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      kitCrestMats[teamIdx] = new THREE.MeshBasicMaterial({
+        map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false, toneMapped: false,
+      });
+      attachCrestsToPlayers();
+    },
+    undefined,
+    () => {
+      kitCrestMats[teamIdx] = crestMaterial(name, jersey);
+      attachCrestsToPlayers();
+    }
+  );
+}
+
+function buildKits(defs) {
+  kitDefs = defs;
+  kitMaterials = [0, 1].map((team) => {
+    const t = defs[team] || {};
+    const home = { jersey: hexNum(t.jersey), shorts: hexNum(t.shorts), socks: hexNum(t.socks) };
+    const gk = { jersey: hexNum(t.gkJersey), shorts: hexNum(t.gkShorts), socks: hexNum(t.gkJersey) };
+    return [home, gk].map((palette) => {
+      const m = kitBaseMat.clone();
+      m.map = makeKitTexture(kitBaseMat.map.image, kitMaskInfo, palette);
+      m.roughness = 0.72;
+      m.metalness = 0.02;
+      m.needsUpdate = true;
+      m.userData.__shared = true;
+      return m;
+    });
+  });
+  kitCrestMats = [null, null];
+  defs.forEach((t, i) => loadCrest(i, t.crest, t.name, t.jersey));
+  refreshPlayerKits();
+}
+
+// 对局配置变化时重建球衣（模板未就绪则先记住配置）
+function ensureTeamKits(defs) {
+  if (!defs || !defs[0] || !defs[1]) return;
+  const sig = defs.map((t) => [t.name, t.jersey, t.shorts, t.socks, t.gkJersey, t.crest].join('|')).join('~');
+  if (sig === kitSig && kitMaterials) return;
+  kitSig = sig;
+  kitDefs = defs;
+  if (!playerTemplate || !kitMaskInfo || !kitBaseMat) return;
+  buildKits(defs);
+}
+
+function refreshPlayerKits() {
+  playerMeshes.forEach((container, idx) => {
+    if (!container.userData.body) return;
+    applyKitMaterial(container.userData.body, kitMaterialFor(idx));
+  });
+}
+
+function attachCrest(container, idx) {
+  const team = idx < 11 ? 0 : 1;
+  const mat = kitCrestMats[team];
+  if (!mat || !crestLocalMatrix || !container.userData.body) return;
+  const old = container.userData.crest;
+  if (old) {
+    if (old.parent) old.parent.remove(old);
+    container.userData.crest = null;
+  }
+  const bone = findBone(container.userData.body, CREST_BONE);
+  if (!bone) return;
+  const crest = new THREE.Mesh(crestGeo, mat);
+  crest.matrixAutoUpdate = false;
+  crest.matrix.copy(crestLocalMatrix);
+  crest.renderOrder = 2;
+  bone.add(crest);
+  container.userData.crest = crest;
+}
+
+function attachCrestsToPlayers() {
+  playerMeshes.forEach((container, idx) => {
+    if (container.userData.avatar) attachCrest(container, idx);
+  });
 }
 
 function upgradePlayerMeshes() {
   if (!playerTemplate) return;
   playerMeshes.forEach((container, idx) => {
     if (container.userData.avatar) return;
-    const isGK = idx === 0 || idx === 11;
-    const team = idx < 11 ? 0 : 1;
-    const kitIndex = isGK ? 2 : team;
-
     [...container.children].forEach((c) => {
       if (c !== container.userData.ring) container.remove(c);
     });
     delete container.userData.legL;
     delete container.userData.legR;
 
-    const { avatar, body } = makeAvatar(kitIndex);
+    const { avatar, body } = makeAvatar();
     container.add(avatar);
     container.userData.avatar = avatar;
+    container.userData.body = body;
+    applyKitMaterial(body, kitMaterialFor(idx));
+    attachCrest(container, idx);
     if (playerClip) {
       const mixer = new THREE.AnimationMixer(body);
       const action = mixer.clipAction(playerClip);
@@ -605,8 +766,8 @@ function buildStadium() {
   // 观众：身体 + 头部两个实例化网格
   const bodyGeo = new THREE.BoxGeometry(4.6, 8.2, 5.4);
   const headGeo = new THREE.SphereGeometry(2.1, 8, 6);
-  const bodyMat = new THREE.MeshLambertMaterial({ roughness: 0.9 });
-  const headMat = new THREE.MeshLambertMaterial({ roughness: 0.9 });
+  const bodyMat = new THREE.MeshLambertMaterial({});
+  const headMat = new THREE.MeshLambertMaterial({});
   const bodyMesh = new THREE.InstancedMesh(bodyGeo, bodyMat, seats.length);
   const headMesh = new THREE.InstancedMesh(headGeo, headMat, seats.length);
   const shirtColors = [0xd7e3f4, 0xf2c14e, 0xdf5e5e, 0x6bbf8a, 0x4f86c6, 0xc08497, 0xffffff, 0x2b3a55, 0x8b5cf6];
@@ -741,7 +902,7 @@ export function start3D(container, onExit) {
   scene.add(ballMesh);
   ballShadow = ballMesh.userData.shadow;
 
-  camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 9000);
+  camera = new THREE.PerspectiveCamera(32, window.innerWidth / window.innerHeight, 1, 9000);
   camX = FW / 2;
 
   stageEl = document.createElement('div');
@@ -792,7 +953,7 @@ export function stop3D() {
       if (o.geometry && !o.geometry.userData.__shared) o.geometry.dispose();
       const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
       mats.forEach((m) => {
-        if (m.userData.__shared) return;
+        if (m.userData && m.userData.__shared) return;
         if (m.map) m.map.dispose();
         m.dispose();
       });
@@ -814,6 +975,7 @@ export function stop3D() {
 
 export function render3DFrame(snap) {
   if (!active || !scene || !camera || !ballMesh) return;
+  if (snap.teams) ensureTeamKits(snap.teams);
 
   ensurePlayerMeshes(snap.players.length);
   const now = performance.now();
@@ -908,23 +1070,14 @@ export function render3DFrame(snap) {
     ballShadow.scale.set(s, s, 1);
   }
 
-  // 转播式跟随镜头：拉近到能看清球员细节（FIFA 手游风格）
+  // 转播式跟随镜头：机位固定在近侧看台上方，用中长焦扫视球场
+  // （球门在画面左右两侧，与 2D 视角一致）
   const focus = snap.focus || { x: snap.ball.x, y: snap.ball.y };
   const targetX = Math.max(FW * 0.14, Math.min(FW * 0.86, focus.x));
-  const targetZ = focus.y * 0.5 + FH * 0.28;
+  const targetZ = Math.max(70, Math.min(FH - 70, focus.y));
   camX += (targetX - camX) * Math.min(1, dt * 3.2);
   camZ += (targetZ - camZ) * Math.min(1, dt * 2.8);
-  const dist = distForCamera();
-  camera.position.set(camX, dist * 0.56, camZ + dist * 0.94);
-  camera.lookAt(camX, 0, camZ + FH * 0.08);
+  camera.position.set(camX, 430, FH + 330);
+  camera.lookAt(camX, 0, camZ);
   renderer.render(scene, camera);
-}
-
-// 可见范围随屏幕比例微调：竖屏/窄屏自动拉远，避免球员跑出画面
-function distForCamera() {
-  const aspect = camera.aspect || 1.6;
-  if (aspect < 1.2) return 380;   // 竖屏：拉远，保证两队都在画面里
-  if (aspect < 1.5) return 330;   // 方屏/平板
-  if (aspect < 1.9) return 300;   // 常见横屏手机、桌面
-  return 275;                     // 超宽屏手机：人物更大
 }
