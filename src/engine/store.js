@@ -23,6 +23,7 @@ let state = {
   // 触屏控件 / 调试按钮
   touch: false,
   debug: false,
+  three3d: true,
 
   // 队伍与菜单选择
   teamMode: 'club',

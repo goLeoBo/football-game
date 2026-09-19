@@ -7,9 +7,12 @@ import {
   STAR_CARDS_DEDUP, cardRarity,
 } from "./data.js";
 import { commit, getState } from "./store.js";
+import { start3D as startThree3D, stop3D as stopThree3D, render3DFrame } from './threeRenderer.js';
 
 
 let cv = null, ctx = null;
+let threeActive = false;   // 是否正在用 Three.js 渲染比赛画面
+let prefer3D = true;       // 默认优先 3D，可通过“返回 2D”切回
 let myCards = [];          // 球星卡模式：玩家拥有的卡
 let starMatchOn = false;   // 球星卡模式开关（red 用 myCards，blue 用随机 STAR_CARDS 豪华版）
 
@@ -1618,6 +1621,7 @@ function endMatch(){
 
 // ====== 点球大战 ======
 function startPenalty(){
+  deactivate3DStage();
   mode='penalty';
   penScore=[0,0]; penShots=[0,0]; penRound=1; penSuddenDeath=false; penResult='';
   commit({
@@ -3184,6 +3188,7 @@ function pmPickClub(name){
 }
 // 打开赛前匹配界面
 function showPrematch(){
+  deactivate3DStage();              // 回菜单时收起 3D，保留 3D 偏好
   teamMode='club';                  // prematch 固定为俱乐部选主队模式
   commit({ screen: 'prematch' });
   if(!redClub || !blueClub) pmPickClub(pmSelClub.name);  // 首次：抽签
@@ -3231,15 +3236,91 @@ function loop(t){
   } else {
     if(lastActiveName !== ''){ lastActiveName=''; commit({ activeName: '' }); }
   }
-  // 赛前匹配与世界杯封面是整屏不透明界面，背后看不到球场，
-  // 跳过高频重绘可明显降低低端手机的卡顿。
   const curScreen = getState().screen;
-  if(curScreen !== 'prematch' && curScreen !== 'wc-cover') draw();
+  if(threeActive && mode==='match'){
+    // 3D 模式：玩法/AI/物理仍由 Canvas 引擎计算，画面交给 Three.js
+    const focusP = players[activeIdx] || players[0];
+    render3DFrame({
+      camPanX,
+      focus: {
+        x: ball.x * 0.7 + (focusP ? focusP.x : ball.x) * 0.3,
+        y: ball.y * 0.65 + (focusP ? focusP.y : ball.y) * 0.35,
+      },
+      players: players.map((p, i) => ({
+        x: p.x, y: p.y,
+        faceX: p.face ? p.face.x : 0,
+        faceY: p.face ? p.face.y : 0,
+        vx: p.vx || 0,
+        vy: p.vy || 0,
+        team: p.team,
+        slide: !!p.slide,
+        kick: p.kick || 0,
+        active: i === activeIdx,
+      })),
+      ball: {
+        x: ball.x, y: ball.y, z: ball.z || 0,
+        vx: ball.vx || 0, vy: ball.vy || 0,
+      },
+    });
+  } else if(curScreen !== 'prematch' && curScreen !== 'wc-cover'){
+    // 赛前匹配与世界杯封面是整屏不透明界面，背后看不到球场，
+    // 跳过高频重绘可明显降低低端手机的卡顿。
+    draw();
+  }
   requestAnimationFrame(loop);
+}
+
+// ====== 3D 画面切换 ======
+// 玩法/AI/物理全部复用原引擎，只把画面层切到 Three.js（失败则回退 2D）。
+function ensure3DMatch(){
+  if(threeActive) return true;
+  if(!prefer3D) return false;
+  const wrap = document.getElementById('wrap');
+  if(!wrap) return false;
+  const ok = startThree3D(wrap, stop3DExperiment);
+  if(!ok) return false;
+  threeActive = true;
+  cv.style.display = 'none';
+  resize();
+  return true;
+}
+function start3DExperiment(){
+  prefer3D = true;
+  commit({ three3d: true });
+  ensure3DMatch();
+  startMatch();
+}
+function stop3DExperiment(){
+  if(!threeActive) return;
+  prefer3D = false;
+  commit({ three3d: false });
+  threeActive = false;
+  stopThree3D();
+  cv.style.display = '';
+  resize();
+}
+// 赛前界面：手动在 2D / 3D 画面之间切换
+function toggle3D(){
+  prefer3D = !prefer3D;
+  commit({ three3d: prefer3D });
+  if(prefer3D){
+    if(mode==='match') ensure3DMatch();
+  } else {
+    deactivate3DStage();
+  }
+}
+function deactivate3DStage(){
+  // 离开比赛（菜单/点球）时收起 3D，但保留“下次仍用 3D”的偏好
+  if(!threeActive) return;
+  threeActive = false;
+  stopThree3D();
+  cv.style.display = '';
+  resize();
 }
 
 // ====== 启动 ======
 function startMatch(){
+  if(prefer3D) ensure3DMatch();
   mode='match'; score=[0,0];
   commit({ score: [0,0], penHud: { ...getState().penHud, visible:false }, debug: true });
   matchTime=selectedTime; timer=matchTime;
@@ -3574,6 +3655,7 @@ function showTrophy(){
 }
 
 function startWCMatch(teamA,teamB,callback){
+  if(prefer3D) ensure3DMatch();
   wc._matchCallback=callback;
   wc._matchTeams=[teamA,teamB];
   mode='match';
@@ -3703,6 +3785,8 @@ export const game = {
   uiMode, uiPickClub, uiSetTeamMode, uiSetFormation, uiSetTime,
   uiSelectWCTeam, uiWCAct, uiPmPickClub, uiPmSetFormation, uiPmBattle, uiPmMore,
   startMatch, startPenalty, debugResetMatch, showPrematch, startWorldCup,
+  start3DExperiment, stop3DExperiment,
+  toggle3D,
   startStarMatch,
   showStarPack, showStarTeam,
   goMenu: showMenu,
