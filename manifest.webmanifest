@@ -1,0 +1,17 @@
+{
+  "name": "绿茵对决 · 足球游戏",
+  "short_name": "绿茵对决",
+  "description": "足球游戏：友谊赛、世界杯模式、球星卡抽卡组队挑战俱乐部",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#08160d",
+  "theme_color": "#0d2b1d",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
