@@ -1126,6 +1126,8 @@ export function start3D(container, onExit) {
     console.error('WebGL 不可用', e);
     return false;
   }
+  
+  try {
 
   active = true;
   lowSpec = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
@@ -1238,6 +1240,10 @@ export function start3D(container, onExit) {
   lastFrameTime = 0;
   camZ = FH / 2;
   return true;
+  } catch (e) {
+    console.error('3D 初始化失败', e);
+    return false;
+  }
 }
 
 export function stop3D() {

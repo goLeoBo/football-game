@@ -3300,12 +3300,24 @@ function ensure3DMatch(){
   if(!prefer3D) return false;
   const wrap = document.getElementById('wrap');
   if(!wrap) return false;
-  const ok = startThree3D(wrap, stop3DExperiment);
-  if(!ok) return false;
-  threeActive = true;
-  cv.style.display = 'none';
-  resize();
-  return true;
+  try {
+    const ok = startThree3D(wrap, stop3DExperiment);
+    if(!ok) {
+      // 3D 初始化失败，确保 canvas 可见
+      cv.style.display = '';
+      return false;
+    }
+    threeActive = true;
+    cv.style.display = 'none';
+    resize();
+    return true;
+  } catch(e) {
+    console.error('3D 初始化异常，回退到 2D', e);
+    threeActive = false;
+    prefer3D = false;
+    cv.style.display = '';  // 确保 canvas 可见
+    return false;
+  }
 }
 function start3DExperiment(){
   prefer3D = true;
