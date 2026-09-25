@@ -8,7 +8,11 @@ import {
   STAR_CARDS_DEDUP, cardRarity,
 } from "./data.js";
 import { commit, getState } from "./store.js";
-import { start3D as startThree3D, stop3D as stopThree3D, render3DFrame } from './threeRenderer.js';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import playerUrl from '../assets/player.glb?url';
 
 
 let cv = null, ctx = null;

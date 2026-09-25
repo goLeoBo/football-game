@@ -1,17 +1,8 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import playerUrl from '../assets/player.glb?url';
-
-// 3D 画面渲染器：只负责把引擎状态可视化，玩法/AI/物理仍在 engine.js 中。
-const FW = 1389;
-const FH = 900;
-// 场地 1389×900 单位 ≈ 105m×68m，1 米 ≈ 13.23 单位
-const UNIT_PER_M = FW / 105;
-const PLAYER_HEIGHT = 2.35 * UNIT_PER_M; // 球员身高 ≈ 2.35m（略高于真人，兼顾可读性）
-const BALL_RADIUS = 0.24 * UNIT_PER_M; // 足球半径 ≈ 0.24m（略有放大便于看清）
-const BALL_Z_SCALE = 0.6;              // 引擎球高按比例映射到写实球员高度
 
 let active = false;
 let renderer = null;
@@ -130,11 +121,13 @@ function makeFieldTexture() {
 function buildGoal(xSign) {
   // 球门立在场地两端：xSign=-1 左门，1 右门
   const g = new THREE.Group();
-  const postMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4, metalness: 0.6 });
+  // 门柱：金属银色（接近真实 FIFA 标准球门）
+  const postMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e8, roughness: 0.25, metalness: 0.85 });
+  // 球网：白色网格材质
   const netMat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+    color: 0xf5f5f0,
     transparent: true,
-    opacity: 0.16,
+    opacity: 0.13,
     side: THREE.DoubleSide,
     depthWrite: false,
   });
@@ -155,15 +148,53 @@ function buildGoal(xSign) {
   bar.position.set(gx, h, zc);
   g.add(p1, p2, bar);
 
-  // 简化球网：两块侧面 + 顶面
-  const side1 = new THREE.Mesh(new THREE.PlaneGeometry(netDepth, h), netMat);
-  side1.position.set(gx + (xSign < 0 ? netDepth / 2 : -netDepth / 2), h / 2, zc - half);
+  // 球网：侧面 + 顶面 + 背面，带网格线
+  const netW = half * 2;
+  const side1 = new THREE.Group();
+  // 主面板
+  const mainNet = new THREE.Mesh(new THREE.PlaneGeometry(netDepth, h), netMat);
+  mainNet.position.set(gx + (xSign < 0 ? netDepth / 2 : -netDepth / 2), h / 2, zc - half);
+  side1.add(mainNet);
+  // 水平网绳
+  for (let row = 0; row < 6; row++) {
+    const ry = (row + 1) * h / 7;
+    const rope = new THREE.Mesh(
+      new THREE.BoxGeometry(netDepth, 0.15, 0.15),
+      new THREE.MeshStandardMaterial({ color: 0xdddddd, transparent: true, opacity: 0.45 })
+    );
+    rope.position.set(mainNet.position.x, ry, mainNet.position.z);
+    side1.add(rope);
+  }
+  // 垂直网绳
+  for (let col = 0; col < 4; col++) {
+    const rz = zc - half + (col + 1) * netW / 5;
+    const vRope = new THREE.Mesh(
+      new THREE.BoxGeometry(0.15, h, 0.15),
+      new THREE.MeshStandardMaterial({ color: 0xdddddd, transparent: true, opacity: 0.45 })
+    );
+    const cx = gx + (xSign < 0 ? netDepth / 2 : -netDepth / 2);
+    vRope.position.set(cx, h / 2, rz);
+    side1.add(vRope);
+  }
   const side2 = side1.clone();
   side2.position.z = zc + half;
-  const top = new THREE.Mesh(new THREE.PlaneGeometry(netDepth, half * 2), netMat);
-  top.rotation.x = Math.PI / 2;
-  top.position.set(gx + (xSign < 0 ? netDepth / 2 : -netDepth / 2), h, zc);
-  g.add(side1, side2, top);
+  side2.scale.x = -1; // 翻转面向另一侧
+  // 顶网
+  const topNet = new THREE.Group();
+  const topPanel = new THREE.Mesh(new THREE.PlaneGeometry(netDepth, netW), netMat);
+  topPanel.rotation.x = Math.PI / 2;
+  topPanel.position.set(gx + (xSign < 0 ? netDepth / 2 : -netDepth / 2), h + 0.3, zc);
+  topNet.add(topPanel);
+  for (let col = 0; col < 5; col++) {
+    const rz = zc - half + (col + 1) * netW / 6;
+    const tRope = new THREE.Mesh(
+      new THREE.BoxGeometry(netDepth, 0.12, 0.12),
+      new THREE.MeshStandardMaterial({ color: 0xdddddd, transparent: true, opacity: 0.4 })
+    );
+    tRope.position.set(topPanel.position.x, topPanel.position.y, rz);
+    topNet.add(tRope);
+  }
+  g.add(side1, side2, topNet);
   return g;
 }
 
@@ -744,6 +775,12 @@ function makeAdTextures() {
     { bg: ['#f2c14e', '#c98a12'], fg: '#1b1b1b', text: 'KICKOFF', sub: 'SPORT ENERGY' },
     { bg: ['#111827', '#374151'], fg: '#ffd60a', text: 'WORLD CUP', sub: 'TOURNAMENT' },
     { bg: ['#6d28d9', '#3b0f80'], fg: '#ffffff', text: '绿茵 TV', sub: 'LIVE 4K' },
+    { bg: ['#d32f2f', '#8b0000'], fg: '#ffffff', text: 'NIKE', sub: 'JUST DO IT' },
+    { bg: ['#1976d2', '#0d47a1'], fg: '#ffffff', text: 'ADIDAS', sub: 'IMPOSSIBLE IS NOTHING' },
+    { bg: ['#388e3c', '#1b5e20'], fg: '#ffffff', text: 'PUMA', sub: 'FORVER FASTER' },
+    { bg: ['#f57c00', '#e65100'], fg: '#ffffff', text: 'UA', sub: 'UNDER ARMOUR' },
+    { bg: ['#7b1fa2', '#4a148c'], fg: '#ffffff', text: 'NEW BALANCE', sub: 'WE ARE ALL IN' },
+    { bg: ['#00838f', '#006064'], fg: '#ffffff', text: 'JOMA', sub: 'CALIDAD SPORT' },
   ];
   return ads.map((ad) => {
     const cvs = document.createElement('canvas');
@@ -1094,10 +1131,27 @@ export function start3D(container, onExit) {
   field.receiveShadow = true;
   scene.add(field);
 
-  // 球场外围
+  // 球场外围：更深的草地 + 跑道痕迹
+  const apronCvs = document.createElement('canvas');
+  apronCvs.width = 1024;
+  apronCvs.height = Math.round(1024 * ((FH + 220) / (FW + 260)));
+  const ax = apronCvs.getContext('2d');
+  // 深绿底色
+  ax.fillStyle = '#1a4a2f';
+  ax.fillRect(0, 0, apronCvs.width, apronCvs.height);
+  // 随机草丛噪点
+  for (let i = 0; i < 5000; i++) {
+    const px = Math.random() * apronCvs.width;
+    const py = Math.random() * apronCvs.height;
+    const b = Math.random() * 20 - 10;
+    ax.fillStyle = b > 0 ? `rgba(255,255,255,${b/255})` : `rgba(0,30,0,${-b/255})`;
+    ax.fillRect(px, py, 3, 2);
+  }
+  const apronTex = new THREE.CanvasTexture(apronCvs);
+  apronTex.colorSpace = THREE.SRGBColorSpace;
   const apron = new THREE.Mesh(
     new THREE.PlaneGeometry(FW + 260, FH + 220),
-    new THREE.MeshStandardMaterial({ color: 0x1a4a2f, roughness: 1 })
+    new THREE.MeshStandardMaterial({ map: apronTex, roughness: 1, metalness: 0 })
   );
   apron.rotation.x = -Math.PI / 2;
   apron.position.set(FW / 2, -0.6, FH / 2);
