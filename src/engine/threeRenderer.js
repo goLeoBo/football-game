@@ -58,7 +58,7 @@ function makeFieldTexture() {
     x.fillRect((i * cw) / stripes, 0, cw / stripes + 1, ch);
   }
   // 噪点：随机深浅变化，模拟草皮纹理
-  for (let i = 0; i < 8000; i++) {
+  for (let i = 0; i < (lowSpec ? 200 : 800); i++) {
     const px = Math.random() * cw;
     const py = Math.random() * ch;
     const brightness = Math.random() * 30 - 15;
@@ -1129,7 +1129,7 @@ export function start3D(container, onExit) {
 
   active = true;
   lowSpec = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowSpec ? 1.5 : 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowSpec ? 1 : 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = !lowSpec;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1144,7 +1144,7 @@ export function start3D(container, onExit) {
   sun.position.set(FW * 0.55, 1600, FH * 0.25);
   if (!lowSpec) {
     sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.mapSize.set(512, 512);
     sun.shadow.camera.left = -FW * 0.9;
     sun.shadow.camera.right = FW * 0.9;
     sun.shadow.camera.top = FH * 0.9;
@@ -1174,7 +1174,7 @@ export function start3D(container, onExit) {
   ax.fillStyle = '#1a4a2f';
   ax.fillRect(0, 0, apronCvs.width, apronCvs.height);
   // 随机草丛噪点
-  for (let i = 0; i < 5000; i++) {
+  for (let i = 0; i < (lowSpec ? 200 : 500); i++) {
     const px = Math.random() * apronCvs.width;
     const py = Math.random() * apronCvs.height;
     const b = Math.random() * 20 - 10;
@@ -1274,6 +1274,9 @@ export function stop3D() {
 
 export function render3DFrame(snap) {
   if (!active || !scene || !camera || !ballMesh) return;
+  // 每 2 帧更新一次阴影以提升性能
+  render3DFrame._frameCount = (render3DFrame._frameCount || 0) + 1;
+  renderer.shadowMap.autoUpdate = !lowSpec && render3DFrame._frameCount % 2 === 0;
   if (snap.teams) ensureTeamKits(snap.teams);
 
   ensurePlayerMeshes(snap.players.length);
