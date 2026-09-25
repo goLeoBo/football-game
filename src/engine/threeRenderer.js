@@ -9,6 +9,9 @@ const FW = 1389, FH = 900;            // 标准足球场比例 1.543:1（≈105m
 const UNIT_PER_M = FW / 105;          // 1 米 = 约 13.23 单位
 const PLAYER_HEIGHT = 1.78 * UNIT_PER_M; // 球员身高（单位）
 
+const BALL_RADIUS = 0.24 * UNIT_PER_M; // 足球半径 ≈ 0.24m（略有放大便于看清）
+const BALL_Z_SCALE = 0.6;              // 引擎球高按比例映射到写实球员高度
+
 let active = false;
 let renderer = null;
 let scene = null;
