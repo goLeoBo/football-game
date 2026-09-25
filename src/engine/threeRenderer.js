@@ -4,6 +4,11 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import playerUrl from '../assets/player.glb?url';
 
+// ====== 场地常量（与 engine.js 保持一致）======
+const FW = 1389, FH = 900;            // 标准足球场比例 1.543:1（≈105m×68m）
+const UNIT_PER_M = FW / 105;          // 1 米 = 约 13.23 单位
+const PLAYER_HEIGHT = 1.78 * UNIT_PER_M; // 球员身高（单位）
+
 let active = false;
 let renderer = null;
 let scene = null;
@@ -46,18 +51,36 @@ function makeFieldTexture() {
   cv.height = ch;
   const x = cv.getContext('2d');
 
-  // 草皮：深浅条纹 + 轻微噪点，避免一片死绿
+  // 草皮：深浅条纹 + 噪点 + 磨损区域，更接近真实球场
   const stripes = 18;
   for (let i = 0; i < stripes; i++) {
     x.fillStyle = i % 2 === 0 ? '#339a4e' : '#2f9048';
     x.fillRect((i * cw) / stripes, 0, cw / stripes + 1, ch);
   }
-  const speck = x.createRadialGradient(cw / 2, ch / 2, 60, cw / 2, ch / 2, cw * 0.7);
-  speck.addColorStop(0, 'rgba(255,255,255,.05)');
-  speck.addColorStop(0.55, 'rgba(0,60,0,.06)');
-  speck.addColorStop(1, 'rgba(0,40,0,.16)');
-  x.fillStyle = speck;
+  // 噪点：随机深浅变化，模拟草皮纹理
+  for (let i = 0; i < 8000; i++) {
+    const px = Math.random() * cw;
+    const py = Math.random() * ch;
+    const brightness = Math.random() * 30 - 15;
+    x.fillStyle = brightness > 0 ? `rgba(255,255,255,${brightness / 255})` : `rgba(0,40,0,${-brightness / 255})`;
+    x.fillRect(px, py, 2 + Math.random() * 2, 1 + Math.random() * 2);
+  }
+  // 中心区域轻微磨损（球员活动频繁）
+  const wear = x.createRadialGradient(cw / 2, ch / 2, 0, cw / 2, ch / 2, cw * 0.28);
+  wear.addColorStop(0, 'rgba(180,160,100,0.12)');
+  wear.addColorStop(0.5, 'rgba(160,140,80,0.06)');
+  wear.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = wear;
   x.fillRect(0, 0, cw, ch);
+  // 球门区磨损
+  for (let side = 0; side < 2; side++) {
+    const gx = side === 0 ? cw * 0.08 : cw * 0.92;
+    const gWear = x.createRadialGradient(gx, ch / 2, 0, gx, ch / 2, cw * 0.12);
+    gWear.addColorStop(0, 'rgba(180,160,100,0.10)');
+    gWear.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = gWear;
+    x.fillRect(gx - cw * 0.12, ch * 0.3, cw * 0.24, ch * 0.4);
+  }
 
   const mx = (v) => (v / FW) * cw;
   const my = (v) => (v / FH) * ch;
@@ -103,6 +126,17 @@ function makeFieldTexture() {
   x.arc(8 + mx(m(11)), ch / 2, 5, 0, Math.PI * 2);
   x.arc(cw - 8 - mx(m(11)), ch / 2, 5, 0, Math.PI * 2);
   x.fill();
+
+  // 罚球弧（D）：以点球点为圆心、10m为半径的弧
+  const arcR = mx(m(10));
+  const penSpotL = 8 + mx(m(11));
+  const penSpotR = cw - 8 - mx(m(11));
+  x.beginPath();
+  x.arc(penSpotL, ch / 2, arcR, -Math.PI / 2, Math.PI / 2);
+  x.stroke();
+  x.beginPath();
+  x.arc(penSpotR, ch / 2, arcR, Math.PI / 2, -Math.PI / 2);
+  x.stroke();
 
   // 角球弧 1m
   const cr = mx(m(1));

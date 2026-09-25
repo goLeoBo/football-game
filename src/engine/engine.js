@@ -13,7 +13,11 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import playerUrl from '../assets/player.glb?url';
+import { start3D, stop3D, render3DFrame } from './threeRenderer.js';
 
+// 兼容旧函数名：旧代码调 startThree3D/stopThree3D
+function startThree3D(container, onExit) { return start3D(container, onExit); }
+function stopThree3D() { stop3D(); }
 
 let cv = null, ctx = null;
 let threeActive = false;   // 是否正在用 Three.js 渲染比赛画面
