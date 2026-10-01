@@ -47,8 +47,9 @@ let crestLocalMatrix = null;    // 队徽相对胸骨的局部变换
 const crestGeo = new THREE.PlaneGeometry(0.135, 0.155);
 
 function makeFieldTexture() {
-  const cw = 2048;
-  const ch = Math.round(2048 * (FH / FW));
+  // 2K 草皮贴图在移动 GPU 上会明显拖慢显存上传和采样，1K 已经足够清晰。
+  const cw = lowSpec ? 1024 : 1536;
+  const ch = Math.round(cw * (FH / FW));
   const cv = document.createElement('canvas');
   cv.width = cw;
   cv.height = ch;
@@ -159,7 +160,7 @@ function buildGoal(xSign) {
   // 球门立在场地两端：xSign=-1 左门，1 右门
   const g = new THREE.Group();
   // 门柱：金属银色（接近真实 FIFA 标准球门）
-  const postMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e8, roughness: 0.25, metalness: 0.85 });
+  const postMat = new THREE.MeshLambertMaterial({ color: 0xe8e8e8 });
   // 球网：白色网格材质
   const netMat = new THREE.MeshBasicMaterial({
     color: 0xf5f5f0,
@@ -197,7 +198,7 @@ function buildGoal(xSign) {
     const ry = (row + 1) * h / 7;
     const rope = new THREE.Mesh(
       new THREE.BoxGeometry(netDepth, 0.15, 0.15),
-      new THREE.MeshStandardMaterial({ color: 0xdddddd, transparent: true, opacity: 0.45 })
+      new THREE.MeshBasicMaterial({ color: 0xdddddd, transparent: true, opacity: 0.45 })
     );
     rope.position.set(mainNet.position.x, ry, mainNet.position.z);
     side1.add(rope);
@@ -207,7 +208,7 @@ function buildGoal(xSign) {
     const rz = zc - half + (col + 1) * netW / 5;
     const vRope = new THREE.Mesh(
       new THREE.BoxGeometry(0.15, h, 0.15),
-      new THREE.MeshStandardMaterial({ color: 0xdddddd, transparent: true, opacity: 0.45 })
+      new THREE.MeshBasicMaterial({ color: 0xdddddd, transparent: true, opacity: 0.45 })
     );
     const cx = gx + (xSign < 0 ? netDepth / 2 : -netDepth / 2);
     vRope.position.set(cx, h / 2, rz);
@@ -226,7 +227,7 @@ function buildGoal(xSign) {
     const rz = zc - half + (col + 1) * netW / 6;
     const tRope = new THREE.Mesh(
       new THREE.BoxGeometry(netDepth, 0.12, 0.12),
-      new THREE.MeshStandardMaterial({ color: 0xdddddd, transparent: true, opacity: 0.4 })
+      new THREE.MeshBasicMaterial({ color: 0xdddddd, transparent: true, opacity: 0.4 })
     );
     tRope.position.set(topPanel.position.x, topPanel.position.y, rz);
     topNet.add(tRope);
@@ -235,52 +236,57 @@ function buildGoal(xSign) {
   return g;
 }
 
+const simplePlayerCache = new Map();
+
+function paintGeometry(geo, hex) {
+  const count = geo.attributes.position.count;
+  const colors = new Float32Array(count * 3);
+  const c = new THREE.Color(hex);
+  for (let i = 0; i < count; i++) {
+    colors[i * 3] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geo;
+}
+
+// 轻量档球员：所有部位合并成一个网格，只占一次 draw call，远低于 GLB 骨骼模型。
 function buildPlayer(team, isGK) {
+  const key = `${team}-${isGK ? 1 : 0}`;
+  const cached = simplePlayerCache.get(key);
+  if (cached) return cached.clone();
+
+  const jersey = isGK ? 0x2fbf71 : (team === 0 ? 0xe63946 : 0x3a86ff);
+  const parts = [];
+  const add = (geo, color, x, y, z, rx = 0, ry = 0, rz = 0) => {
+    if (rx) geo.rotateX(rx);
+    if (ry) geo.rotateY(ry);
+    if (rz) geo.rotateZ(rz);
+    geo.translate(x, y, z);
+    parts.push(paintGeometry(geo, color));
+  };
+
+  add(new THREE.CylinderGeometry(3.4, 4, 14, 6).translate(0, -7, 0), 0xffffff, -4.2, 14, 0);
+  add(new THREE.CylinderGeometry(3.4, 4, 14, 6).translate(0, -7, 0), 0xffffff, 4.2, 14, 0);
+  add(new THREE.CylinderGeometry(8.2, 7, 26, 8), jersey, 0, 28, 0);
+  add(new THREE.CylinderGeometry(3, 3.2, 14, 6), jersey, -9.5, 33, 0);
+  add(new THREE.CylinderGeometry(3, 3.2, 14, 6), jersey, 9.5, 33, 0);
+  add(new THREE.CylinderGeometry(8.6, 7.6, 10, 7), 0x202830, 0, 15.5, 0);
+  add(new THREE.SphereGeometry(7.4, 8, 6), 0xf0c8a0, 0, 47.5, 0);
+  add(new THREE.ConeGeometry(2.8, 8, 6), jersey, 0, 30, 15, Math.PI / 2);
+
   const g = new THREE.Group();
-  const jersey = new THREE.MeshStandardMaterial({
-    color: team === 0 ? 0xe63946 : 0x3a86ff,
-    roughness: 0.45,
-    metalness: 0.08,
-  });
-  const skin = new THREE.MeshStandardMaterial({ color: 0xf0c8a0, roughness: 0.75 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x202830, roughness: 0.6 });
-  const sock = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55 });
-
-  const legGeo = new THREE.CylinderGeometry(3.4, 4, 14, 8);
-  legGeo.translate(0, -7, 0);
-  const legL = new THREE.Mesh(legGeo, sock);
-  legL.position.set(-4.2, 14, 0);
-  const legR = new THREE.Mesh(legGeo, sock);
-  legR.position.set(4.2, 14, 0);
-  g.add(legL, legR);
-
-  // 上衣：肩膀略宽，腰略收
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(8.2, 7, 26, 12), jersey);
-  body.position.y = 28;
-  const armGeo = new THREE.CylinderGeometry(3, 3.2, 14, 8);
-  const armL = new THREE.Mesh(armGeo, jersey);
-  armL.position.set(-9.5, 33, 0);
-  const armR = new THREE.Mesh(armGeo, jersey);
-  armR.position.set(9.5, 33, 0);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(7.4, 16, 12), skin);
-  head.position.y = 47.5;
-
-  // 短裤
-  const shorts = new THREE.Mesh(new THREE.CylinderGeometry(8.6, 7.6, 10, 10), dark);
-  shorts.position.y = 15.5;
-  // 面朝方向小圆锥
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(2.8, 8, 8), jersey);
-  nose.rotation.x = Math.PI / 2;
-  nose.position.set(0, 30, 15);
-
-  g.add(body, armL, armR, shorts, head, nose);
-  g.userData.legL = legL;
-  g.userData.legR = legR;
+  const mesh = new THREE.Mesh(mergeGeometries(parts), new THREE.MeshLambertMaterial({ vertexColors: true }));
+  mesh.geometry.userData.__shared = true;
+  mesh.material.userData.__shared = true;
+  g.add(mesh);
   g.userData.speed = 0;
   g.userData.phase = Math.random() * Math.PI * 2;
   g.userData.isGK = isGK;
   g.visible = false;
-  return g;
+  simplePlayerCache.set(key, g);
+  return g.clone();
 }
 
 function ensurePlayerMeshes(n) {
@@ -289,11 +295,13 @@ function ensurePlayerMeshes(n) {
     const team = idx < 11 ? 0 : 1;
     const isGK = idx === 0 || idx === 11;
     const m = buildPlayer(team, isGK);
-    m.castShadow = true;
+    m.castShadow = false;
+    m.userData.phase = Math.random() * Math.PI * 2;
+    m.userData.speed = 0;
     playerMeshes.push(m);
     scene.add(m);
   }
-  loadPlayerTemplate();
+  if (!lowSpec) loadPlayerTemplate();
 }
 
 const CREST_BONE = 'Spine';   // 队徽挂在胸骨上，随身体动作
@@ -479,6 +487,33 @@ function makeKitTexture(image, maskInfo, palette) {
   return tex;
 }
 
+// 写实球员模型自带 PBR 材质。移动端和集显只需要“贴图 + 简单光照”，
+// 改用 Lambert 能显著减少骨骼动画每个像素的着色成本。
+function convertPlayerMaterials(root) {
+  const cache = new Map();
+  const convert = (source) => {
+    if (!source || source.isMeshLambertMaterial || source.isMeshBasicMaterial) return source;
+    if (cache.has(source)) return cache.get(source);
+    const mat = new THREE.MeshLambertMaterial({
+      color: source.color ? source.color.clone() : 0xffffff,
+      map: source.map || null,
+      transparent: !!source.transparent,
+      opacity: source.opacity !== undefined ? source.opacity : 1,
+      alphaTest: source.alphaTest || 0,
+      side: source.side,
+      vertexColors: !!source.vertexColors,
+      depthWrite: source.depthWrite !== false,
+    });
+    mat.name = source.name || '';
+    cache.set(source, mat);
+    return mat;
+  };
+  root.traverse((o) => {
+    if (!o.isMesh && !o.isSkinnedMesh) return;
+    o.material = Array.isArray(o.material) ? o.material.map(convert) : convert(o.material);
+  });
+}
+
 function preparePlayerTemplate(gltf) {
   const root = gltf.scene;
   root.updateMatrixWorld(true);
@@ -518,6 +553,7 @@ function preparePlayerTemplate(gltf) {
       }
     }
   });
+  convertPlayerMaterials(root);
   if (srcImage && baseMat && skinMesh) {
     try {
       kitMaskInfo = buildKitMask(skinMesh, srcImage);
@@ -611,7 +647,7 @@ function makeAvatar() {
   body.rotation.y = -templateBaseYaw;
   body.traverse((o) => {
     if (!o.isMesh && !o.isSkinnedMesh) return;
-    o.castShadow = !lowSpec;
+    o.castShadow = false;
     o.receiveShadow = false;
     o.frustumCulled = false; // 骨骼动画不会刷新包围盒，避免被误剔除
   });
@@ -718,11 +754,13 @@ function buildKits(defs) {
       sleeves: 0,
     };
     return [home, gk].map((palette) => {
-      const m = kitBaseMat.clone();
-      m.map = makeKitTexture(kitBaseMat.map.image, kitMaskInfo, palette);
-      m.roughness = 0.72;
-      m.metalness = 0.02;
-      m.needsUpdate = true;
+      const m = new THREE.MeshLambertMaterial({
+        map: makeKitTexture(kitBaseMat.map.image, kitMaskInfo, palette),
+        color: 0xffffff,
+        side: kitBaseMat.side,
+        transparent: !!kitBaseMat.transparent,
+        alphaTest: kitBaseMat.alphaTest || 0,
+      });
       m.userData.__shared = true;
       return m;
     });
@@ -804,7 +842,7 @@ function upgradePlayerMeshes() {
 }
 
 // 自制 LED 广告画面（不使用真实品牌，避免版权问题）
-function makeAdTextures() {
+function makeAdTextures(count = 12) {
   const ads = [
     { bg: ['#0b3d91', '#0a2a63'], fg: '#ffffff', text: '绿茵对决', sub: 'GREEN PITCH 3D' },
     { bg: ['#c8102e', '#7a0a1c'], fg: '#ffffff', text: '哈十四中', sub: 'HARBIN NO.14' },
@@ -819,7 +857,7 @@ function makeAdTextures() {
     { bg: ['#7b1fa2', '#4a148c'], fg: '#ffffff', text: 'NEW BALANCE', sub: 'WE ARE ALL IN' },
     { bg: ['#00838f', '#006064'], fg: '#ffffff', text: 'JOMA', sub: 'CALIDAD SPORT' },
   ];
-  return ads.map((ad) => {
+  return ads.slice(0, count).map((ad) => {
     const cvs = document.createElement('canvas');
     cvs.width = 512;
     cvs.height = 256;
@@ -849,18 +887,17 @@ function makeAdTextures() {
 // 立体看台：混凝土台阶 + 过道 + 顶棚桁架 + 灯光塔 + LED 广告牌 + 立体观众
 function buildStadium() {
   const g = new THREE.Group();
-  const rows = lowSpec ? 7 : 12;
+  const rows = lowSpec ? 3 : 9;
   const rowH = 10;          // 每级台阶高 ≈0.75m
   const rowD = 11;          // 每级台阶深 ≈0.83m
   const baseGap = 26;       // 看台离边线的距离
-  const concrete = new THREE.MeshStandardMaterial({ color: 0x8d949c, roughness: 0.95 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x4a5058, roughness: 0.95 });
-  const stairMat = new THREE.MeshStandardMaterial({ color: 0xb9c0c7, roughness: 0.9 });
+  const concrete = new THREE.MeshLambertMaterial({ color: 0x8d949c });
+  const dark = new THREE.MeshLambertMaterial({ color: 0x4a5058 });
   const unitBox = new THREE.BoxGeometry(1, 1, 1);
 
   const longLen = FW + baseGap * 2;
   const shortLen = FH + baseGap * 2;
-  const seatW = lowSpec ? 11 : 8.5;
+  const seatW = lowSpec ? 22 : 11;
   const seats = [];
 
   const addTier = (len, cx, cz, along, dir) => {
@@ -887,19 +924,6 @@ function buildStadium() {
           ? { x: cx + t, y: topY, z: cz + dir * (out + 1.5), yaw: faceYaw, s: 0.92 + Math.random() * 0.2 }
           : { x: cx + dir * (out + 1.5), y: topY, z: cz + t, yaw: faceYaw, s: 0.92 + Math.random() * 0.2 });
       }
-      // 过道台阶
-      for (let i = aisleEvery - 1; i < n; i += aisleEvery) {
-        const t = -len / 2 + (i + 0.5) * seatW;
-        const stair = new THREE.Mesh(unitBox, stairMat);
-        if (along === 'x') {
-          stair.scale.set(seatW * 0.8, rowH * 0.35, rowD * 1.05);
-          stair.position.set(cx + t, topY - rowH * 0.15, cz + dir * (out + 0.5));
-        } else {
-          stair.scale.set(rowD * 1.05, rowH * 0.35, seatW * 0.8);
-          stair.position.set(cx + dir * (out + 0.5), topY - rowH * 0.15, cz + t);
-        }
-        g.add(stair);
-      }
     }
   };
 
@@ -909,38 +933,40 @@ function buildStadium() {
   addTier(shortLen, FW, FH / 2, 'z', 1);
 
   // 顶棚 + 立柱
-  const roofMat = new THREE.MeshStandardMaterial({ color: 0x2b3238, roughness: 0.85, metalness: 0.2, side: THREE.DoubleSide });
   const roofY = rows * rowH + 34;
-  const roofDepth = rows * rowD + baseGap + 20;
-  const roof1 = new THREE.Mesh(new THREE.BoxGeometry(longLen + 40, 4, roofDepth), roofMat);
-  roof1.position.set(FW / 2, roofY, FH + baseGap + rows * rowD - roofDepth / 2 + 10);
-  const roof2 = roof1.clone();
-  roof2.position.z = -(baseGap + rows * rowD - roofDepth / 2 + 10);
-  const roof3 = new THREE.Mesh(new THREE.BoxGeometry(roofDepth, 4, shortLen + 40), roofMat);
-  roof3.position.set(-(baseGap + rows * rowD - roofDepth / 2 + 10), roofY, FH / 2);
-  const roof4 = roof3.clone();
-  roof4.position.x = FW + (baseGap + rows * rowD - roofDepth / 2 + 10);
-  g.add(roof1, roof2, roof3, roof4);
+  if (!lowSpec) {
+    const roofMat = new THREE.MeshLambertMaterial({ color: 0x2b3238, side: THREE.DoubleSide });
+    const roofDepth = rows * rowD + baseGap + 20;
+    const roof1 = new THREE.Mesh(new THREE.BoxGeometry(longLen + 40, 4, roofDepth), roofMat);
+    roof1.position.set(FW / 2, roofY, FH + baseGap + rows * rowD - roofDepth / 2 + 10);
+    const roof2 = roof1.clone();
+    roof2.position.z = -(baseGap + rows * rowD - roofDepth / 2 + 10);
+    const roof3 = new THREE.Mesh(new THREE.BoxGeometry(roofDepth, 4, shortLen + 40), roofMat);
+    roof3.position.set(-(baseGap + rows * rowD - roofDepth / 2 + 10), roofY, FH / 2);
+    const roof4 = roof3.clone();
+    roof4.position.x = FW + (baseGap + rows * rowD - roofDepth / 2 + 10);
+    g.add(roof1, roof2, roof3, roof4);
 
-  const colMat = new THREE.MeshStandardMaterial({ color: 0x6f7680, roughness: 0.8 });
-  const colGeo = new THREE.CylinderGeometry(3, 3, roofY, 8);
-  for (let x = -40; x <= FW + 40; x += 190) {
-    const c1 = new THREE.Mesh(colGeo, colMat);
-    c1.position.set(x, roofY / 2, FH + baseGap + rows * rowD);
-    const c2 = c1.clone();
-    c2.position.z = -(baseGap + rows * rowD);
-    g.add(c1, c2);
-  }
-  for (let z = 0; z <= FH; z += 190) {
-    const c1 = new THREE.Mesh(colGeo, colMat);
-    c1.position.set(-(baseGap + rows * rowD), roofY / 2, z);
-    const c2 = c1.clone();
-    c2.position.x = FW + baseGap + rows * rowD;
-    g.add(c1, c2);
+    const colMat = new THREE.MeshLambertMaterial({ color: 0x6f7680 });
+    const colGeo = new THREE.CylinderGeometry(3, 3, roofY, 8);
+    for (let x = -40; x <= FW + 40; x += 190) {
+      const c1 = new THREE.Mesh(colGeo, colMat);
+      c1.position.set(x, roofY / 2, FH + baseGap + rows * rowD);
+      const c2 = c1.clone();
+      c2.position.z = -(baseGap + rows * rowD);
+      g.add(c1, c2);
+    }
+    for (let z = 0; z <= FH; z += 190) {
+      const c1 = new THREE.Mesh(colGeo, colMat);
+      c1.position.set(-(baseGap + rows * rowD), roofY / 2, z);
+      const c2 = c1.clone();
+      c2.position.x = FW + baseGap + rows * rowD;
+      g.add(c1, c2);
+    }
   }
 
   // 顶棚桁架（斜撑）
-  const trussMat = new THREE.MeshStandardMaterial({ color: 0x596069, roughness: 0.75, metalness: 0.25 });
+  const trussMat = new THREE.MeshLambertMaterial({ color: 0x596069 });
   const trussGeo = new THREE.BoxGeometry(1, 1, 1);
   const addTruss = (len, cx, cz, along, dir) => {
     for (let t = -len / 2; t <= len / 2; t += 130) {
@@ -960,18 +986,20 @@ function buildStadium() {
       g.add(beam);
     }
   };
-  addTruss(longLen, FW / 2, 0, 'x', -1);
-  addTruss(longLen, FW / 2, FH, 'x', 1);
-  addTruss(shortLen, 0, FH / 2, 'z', -1);
-  addTruss(shortLen, FW, FH / 2, 'z', 1);
+  if (!lowSpec) {
+    addTruss(longLen, FW / 2, 0, 'x', -1);
+    addTruss(longLen, FW / 2, FH, 'x', 1);
+    addTruss(shortLen, 0, FH / 2, 'z', -1);
+    addTruss(shortLen, FW, FH / 2, 'z', 1);
+  }
 
   // 场边 LED 广告牌（自制广告画面）
-  const adTextures = makeAdTextures();
-  const boardSideMat = new THREE.MeshStandardMaterial({ color: 0x101418, roughness: 0.7 });
+  const adTextures = makeAdTextures(lowSpec ? 6 : 10);
+  const boardSideMat = new THREE.MeshLambertMaterial({ color: 0x101418 });
   const boardMats = adTextures.map((map) => new THREE.MeshBasicMaterial({ map, toneMapped: false }));
   const boardH = 6;
   const boardD = 2.4;
-  const segs = 26;
+  const segs = lowSpec ? 14 : 20;
   const boardGeo = new THREE.BoxGeometry(1, 1, 1);
   for (let i = 0; i < segs; i++) {
     const w = FW / segs;
@@ -980,56 +1008,65 @@ function buildStadium() {
     b.scale.set(w - 1, boardH, boardD);
     b.position.set(w * (i + 0.5), boardH / 2 + 1, -baseGap + 14);
     g.add(b);
-    const b2 = b.clone();
-    b2.position.z = FH + baseGap - 14;
-    g.add(b2);
+    if (!lowSpec) {
+      const b2 = b.clone();
+      b2.position.z = FH + baseGap - 14;
+      g.add(b2);
+    }
   }
   // 底线后方广告牌
-  for (let i = 0; i < 10; i++) {
-    const w = FH / 10;
-    const mats = [boardSideMat, boardSideMat, boardSideMat, boardSideMat, boardMats[i % boardMats.length], boardMats[i % boardMats.length]];
-    const b = new THREE.Mesh(boardGeo, mats);
-    b.scale.set(boardD, boardH, w - 1);
-    b.position.set(-baseGap + 14, boardH / 2 + 1, w * (i + 0.5));
-    g.add(b);
-    const b2 = b.clone();
-    b2.position.x = FW + baseGap - 14;
-    g.add(b2);
+  const endSegs = lowSpec ? 6 : 8;
+  if (!lowSpec) {
+    for (let i = 0; i < endSegs; i++) {
+      const w = FH / endSegs;
+      const mats = [boardSideMat, boardSideMat, boardSideMat, boardSideMat, boardMats[i % boardMats.length], boardMats[i % boardMats.length]];
+      const b = new THREE.Mesh(boardGeo, mats);
+      b.scale.set(boardD, boardH, w - 1);
+      b.position.set(-baseGap + 14, boardH / 2 + 1, w * (i + 0.5));
+      g.add(b);
+      const b2 = b.clone();
+      b2.position.x = FW + baseGap - 14;
+      g.add(b2);
+    }
   }
 
   // 灯光塔（四角）
-  const pylonMat = new THREE.MeshStandardMaterial({ color: 0x3b4149, roughness: 0.7, metalness: 0.3 });
+  const pylonMat = new THREE.MeshLambertMaterial({ color: 0x3b4149 });
   const lampMat = new THREE.MeshBasicMaterial({ color: 0xfff6d5, toneMapped: false });
   const pylonH = roofY + 120;
   const pylonPos = [
     [-70, -70], [FW + 70, -70], [-70, FH + 70], [FW + 70, FH + 70],
   ];
-  pylonPos.forEach(([px, pz]) => {
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(7, 11, pylonH, 10), pylonMat);
-    pole.position.set(px, pylonH / 2, pz);
-    g.add(pole);
-    const head = new THREE.Mesh(new THREE.BoxGeometry(70, 34, 10), pylonMat);
-    head.position.set(px, pylonH - 6, pz);
-    head.lookAt(FW / 2, 0, FH / 2);
-    g.add(head);
-    const lamp = new THREE.Mesh(new THREE.BoxGeometry(62, 26, 3), lampMat);
-    lamp.position.copy(head.position);
-    lamp.quaternion.copy(head.quaternion);
-    lamp.translateZ(6);
-    g.add(lamp);
-  });
+  if (!lowSpec) {
+    pylonPos.forEach(([px, pz]) => {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(7, 11, pylonH, 10), pylonMat);
+      pole.position.set(px, pylonH / 2, pz);
+      g.add(pole);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(70, 34, 10), pylonMat);
+      head.position.set(px, pylonH - 6, pz);
+      head.lookAt(FW / 2, 0, FH / 2);
+      g.add(head);
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(62, 26, 3), lampMat);
+      lamp.position.copy(head.position);
+      lamp.quaternion.copy(head.quaternion);
+      lamp.translateZ(6);
+      g.add(lamp);
+    });
+  }
 
   // 角旗
-  const flagPoleMat = new THREE.MeshStandardMaterial({ color: 0xf2f4f6, roughness: 0.6 });
+  const flagPoleMat = new THREE.MeshLambertMaterial({ color: 0xf2f4f6 });
   const flagMat = new THREE.MeshBasicMaterial({ color: 0xffd60a, side: THREE.DoubleSide, toneMapped: false });
-  [[20, 20], [FW - 20, 20], [20, FH - 20], [FW - 20, FH - 20]].forEach(([fx, fz]) => {
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 22, 6), flagPoleMat);
-    pole.position.set(fx, 11, fz);
-    g.add(pole);
-    const flag = new THREE.Mesh(new THREE.PlaneGeometry(9, 6), flagMat);
-    flag.position.set(fx + 4.5, 19, fz);
-    g.add(flag);
-  });
+  if (!lowSpec) {
+    [[20, 20], [FW - 20, 20], [20, FH - 20], [FW - 20, FH - 20]].forEach(([fx, fz]) => {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 22, 6), flagPoleMat);
+      pole.position.set(fx, 11, fz);
+      g.add(pole);
+      const flag = new THREE.Mesh(new THREE.PlaneGeometry(9, 6), flagMat);
+      flag.position.set(fx + 4.5, 19, fz);
+      g.add(flag);
+    });
+  }
 
   // 观众：坐姿小人（上半身+手臂 / 大腿+小腿 / 头 / 头发），实例化渲染
   const upperGeo = mergeGeometries([
@@ -1084,10 +1121,7 @@ function buildStadium() {
 
 function buildSoccerBall() {
   const g = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.SphereGeometry(BALL_RADIUS, 20, 16),
-    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 })
-  );
+  const body = new THREE.Mesh(new THREE.SphereGeometry(BALL_RADIUS, 16, 12));
   // 用少量色块贴出足球感觉
   const ctx = document.createElement('canvas');
   ctx.width = 256;
@@ -1104,7 +1138,7 @@ function buildSoccerBall() {
   });
   const tex = new THREE.CanvasTexture(ctx);
   tex.colorSpace = THREE.SRGBColorSpace;
-  body.material = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.35 });
+  body.material = new THREE.MeshLambertMaterial({ map: tex, color: 0xffffff });
   g.add(body);
 
   const sh = new THREE.Mesh(
@@ -1120,10 +1154,17 @@ function buildSoccerBall() {
 
 export function start3D(container, onExit) {
   if (active) return true;
+  const mobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const memory = Number(navigator.deviceMemory || 8);
+  const cores = Number(navigator.hardwareConcurrency || 4);
+  const dpr = Number(window.devicePixelRatio || 1);
+  // 默认走轻量档：关闭实时阴影、限制像素比、精简看台和广告牌。
+  // 阴影贴图在部分 WebGL 实现上会直接触发绘制错误，得不偿失。
+  lowSpec = mobile || memory <= 8 || cores <= 8 || dpr > 1.8;
   try {
     renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      powerPreference: 'high-performance',
+      antialias: false,
+      powerPreference: lowSpec ? 'default' : 'high-performance',
     });
   } catch (e) {
     console.error('WebGL 不可用', e);
@@ -1131,11 +1172,15 @@ export function start3D(container, onExit) {
   }
 
   active = true;
-  lowSpec = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowSpec ? 1 : 2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = !lowSpec;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // 同时限制 DPR 和总像素数，避免 2K/4K 屏幕上直接渲染数百万像素。
+  const applyRendererSize = () => {
+    const maxPixels = lowSpec ? 1280 * 720 : 1600 * 900;
+    const pixelBudget = Math.sqrt(maxPixels / Math.max(1, window.innerWidth * window.innerHeight));
+    renderer.setPixelRatio(Math.max(0.35, Math.min(dpr, lowSpec ? 1 : 1.25, pixelBudget)));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  };
+  applyRendererSize();
+  renderer.shadowMap.enabled = false;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   scene = new THREE.Scene();
@@ -1143,29 +1188,19 @@ export function start3D(container, onExit) {
   scene.fog = new THREE.Fog(0x0c2418, 1500, 4200);
 
   scene.add(new THREE.HemisphereLight(0xdfeaff, 0x275f3a, 1.15));
-  sun = new THREE.DirectionalLight(0xfff3d6, lowSpec ? 1.5 : 1.9);
+  sun = new THREE.DirectionalLight(0xfff3d6, lowSpec ? 1.25 : 1.55);
   sun.position.set(FW * 0.55, 1600, FH * 0.25);
-  if (!lowSpec) {
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(512, 512);
-    sun.shadow.camera.left = -FW * 0.9;
-    sun.shadow.camera.right = FW * 0.9;
-    sun.shadow.camera.top = FH * 0.9;
-    sun.shadow.camera.bottom = -FH * 0.9;
-    sun.shadow.camera.near = 200;
-    sun.shadow.camera.far = 3500;
-    sun.shadow.bias = -0.0004;
-  }
+  sun.castShadow = false;
   scene.add(sun);
 
   // 场地
   const field = new THREE.Mesh(
     new THREE.PlaneGeometry(FW, FH),
-    new THREE.MeshStandardMaterial({ map: makeFieldTexture(), roughness: 0.96, metalness: 0 })
+    new THREE.MeshBasicMaterial({ map: makeFieldTexture() })
   );
   field.rotation.x = -Math.PI / 2;
   field.position.set(FW / 2, 0, FH / 2);
-  field.receiveShadow = true;
+  field.receiveShadow = false;
   scene.add(field);
 
   // 球场外围：更深的草地 + 跑道痕迹
@@ -1188,11 +1223,11 @@ export function start3D(container, onExit) {
   apronTex.colorSpace = THREE.SRGBColorSpace;
   const apron = new THREE.Mesh(
     new THREE.PlaneGeometry(FW + 260, FH + 220),
-    new THREE.MeshStandardMaterial({ map: apronTex, roughness: 1, metalness: 0 })
+    new THREE.MeshBasicMaterial({ map: apronTex })
   );
   apron.rotation.x = -Math.PI / 2;
   apron.position.set(FW / 2, -0.6, FH / 2);
-  apron.receiveShadow = true;
+  apron.receiveShadow = false;
   scene.add(apron);
 
   scene.add(buildGoal(-1), buildGoal(1));
@@ -1200,7 +1235,7 @@ export function start3D(container, onExit) {
 
   ensurePlayerMeshes(22);
   ballMesh = buildSoccerBall();
-  ballMesh.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  ballMesh.traverse((o) => { if (o.isMesh) o.castShadow = false; });
   scene.add(ballMesh);
   ballShadow = ballMesh.userData.shadow;
 
@@ -1233,7 +1268,7 @@ export function start3D(container, onExit) {
     if (!active || !camera || !renderer) return;
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    applyRendererSize();
   };
   window.addEventListener('resize', resizeHandler);
   resizeHandler();
@@ -1277,15 +1312,14 @@ export function stop3D() {
 
 export function render3DFrame(snap) {
   if (!active || !scene || !camera || !ballMesh) return;
-  // 每 2 帧更新一次阴影以提升性能
-  render3DFrame._frameCount = (render3DFrame._frameCount || 0) + 1;
-  renderer.shadowMap.autoUpdate = !lowSpec && render3DFrame._frameCount % 2 === 0;
+  const now = performance.now();
+  const frameInterval = lowSpec ? 1000 / 30 : 1000 / 50;
+  if (lastFrameTime && now - lastFrameTime < frameInterval - 1) return;
+  const dt = lastFrameTime ? Math.min(0.08, (now - lastFrameTime) / 1000) : 1 / 60;
+  lastFrameTime = now;
   if (snap.teams) ensureTeamKits(snap.teams);
 
   ensurePlayerMeshes(snap.players.length);
-  const now = performance.now();
-  const dt = lastFrameTime ? Math.min(0.05, (now - lastFrameTime) / 1000) : 1 / 60;
-  lastFrameTime = now;
 
   snap.players.forEach((p, i) => {
     const m = playerMeshes[i];
@@ -1328,7 +1362,7 @@ export function render3DFrame(snap) {
         legL.rotation.x = Math.sin(m.userData.phase) * amp;
         legR.rotation.x = Math.sin(m.userData.phase + Math.PI) * amp;
       }
-      m.position.y = Math.abs(Math.sin(now * 0.006 + i * 0.9)) * (0.35 + spd * 0.35);
+      m.position.y = Math.abs(Math.sin(now * 0.006 + i * 0.9)) * Math.min(0.8, spd * 0.45);
     }
 
     // 当前操控球员的金色光圈
@@ -1384,5 +1418,15 @@ export function render3DFrame(snap) {
   camZ += (targetZ - camZ) * Math.min(1, dt * 2.8);
   camera.position.set(camX, 430, FH + 330);
   camera.lookAt(camX, 0, camZ);
+  const renderStart = performance.now();
   renderer.render(scene, camera);
+  if (import.meta.env.DEV) {
+    window.__football3DStats = {
+      renderMs: performance.now() - renderStart,
+      calls: renderer.info.render.calls,
+      triangles: renderer.info.render.triangles,
+      lowSpec,
+      pixelRatio: renderer.getPixelRatio(),
+    };
+  }
 }
