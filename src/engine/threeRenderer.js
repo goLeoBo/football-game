@@ -27,6 +27,11 @@ let camZ = FH / 2;
 let lastBall = null;
 let lastFrameTime = 0;
 let lowSpec = false;
+let highQuality = false;
+let detailedPlayers = false;
+let richScene = false;
+let playerShadowMesh = null;
+const shadowDummy = new THREE.Object3D();
 
 // ====== 真实球员模型（CC0 写实球员：跑步动画 + 骨骼）======
 let playerTemplate = null;      // 载入后的模型模板，用于克隆
@@ -48,7 +53,7 @@ const crestGeo = new THREE.PlaneGeometry(0.135, 0.155);
 
 function makeFieldTexture() {
   // 2K 草皮贴图在移动 GPU 上会明显拖慢显存上传和采样，1K 已经足够清晰。
-  const cw = lowSpec ? 1024 : 1536;
+  const cw = richScene ? 2048 : highQuality ? 1536 : 1024;
   const ch = Math.round(cw * (FH / FW));
   const cv = document.createElement('canvas');
   cv.width = cw;
@@ -62,7 +67,7 @@ function makeFieldTexture() {
     x.fillRect((i * cw) / stripes, 0, cw / stripes + 1, ch);
   }
   // 噪点：随机深浅变化，模拟草皮纹理
-  for (let i = 0; i < (lowSpec ? 200 : 800); i++) {
+  for (let i = 0; i < (richScene ? 800 : 200); i++) {
     const px = Math.random() * cw;
     const py = Math.random() * ch;
     const brightness = Math.random() * 30 - 15;
@@ -301,7 +306,7 @@ function ensurePlayerMeshes(n) {
     playerMeshes.push(m);
     scene.add(m);
   }
-  if (!lowSpec) loadPlayerTemplate();
+  if (detailedPlayers) loadPlayerTemplate();
 }
 
 const CREST_BONE = 'Spine';   // 队徽挂在胸骨上，随身体动作
@@ -483,7 +488,7 @@ function makeKitTexture(image, maskInfo, palette) {
   tex.flipY = false;
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
-  tex.anisotropy = lowSpec ? 2 : 8;
+  tex.anisotropy = highQuality ? 8 : 2;
   return tex;
 }
 
@@ -493,6 +498,8 @@ function convertPlayerMaterials(root) {
   const cache = new Map();
   const convert = (source) => {
     if (!source || source.isMeshLambertMaterial || source.isMeshBasicMaterial) return source;
+    // 高配桌面保留 PBR 细节；阴影已全局关闭，不会触发阴影贴图兼容问题。
+    if (highQuality && source.isMeshStandardMaterial) return source;
     if (cache.has(source)) return cache.get(source);
     const mat = new THREE.MeshLambertMaterial({
       color: source.color ? source.color.clone() : 0xffffff,
@@ -754,13 +761,16 @@ function buildKits(defs) {
       sleeves: 0,
     };
     return [home, gk].map((palette) => {
-      const m = new THREE.MeshLambertMaterial({
+      const materialOptions = {
         map: makeKitTexture(kitBaseMat.map.image, kitMaskInfo, palette),
         color: 0xffffff,
         side: kitBaseMat.side,
         transparent: !!kitBaseMat.transparent,
         alphaTest: kitBaseMat.alphaTest || 0,
-      });
+      };
+      const m = highQuality
+        ? new THREE.MeshStandardMaterial({ ...materialOptions, roughness: 0.68, metalness: 0.02 })
+        : new THREE.MeshLambertMaterial(materialOptions);
       m.userData.__shared = true;
       return m;
     });
@@ -1138,7 +1148,9 @@ function buildSoccerBall() {
   });
   const tex = new THREE.CanvasTexture(ctx);
   tex.colorSpace = THREE.SRGBColorSpace;
-  body.material = new THREE.MeshLambertMaterial({ map: tex, color: 0xffffff });
+  body.material = highQuality
+    ? new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 0.34, metalness: 0.02 })
+    : new THREE.MeshLambertMaterial({ map: tex, color: 0xffffff });
   g.add(body);
 
   const sh = new THREE.Mesh(
@@ -1152,19 +1164,38 @@ function buildSoccerBall() {
   return g;
 }
 
+function buildPlayerShadows(count) {
+  const geo = new THREE.CircleGeometry(6.4, 16);
+  geo.rotateX(-Math.PI / 2);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0x06140c,
+    transparent: true,
+    opacity: 0.24,
+    depthWrite: false,
+  });
+  const mesh = new THREE.InstancedMesh(geo, mat, count);
+  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  mesh.frustumCulled = false;
+  return mesh;
+}
+
 export function start3D(container, onExit) {
   if (active) return true;
   const mobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   const memory = Number(navigator.deviceMemory || 8);
   const cores = Number(navigator.hardwareConcurrency || 4);
   const dpr = Number(window.devicePixelRatio || 1);
-  // 默认走轻量档：关闭实时阴影、限制像素比、精简看台和广告牌。
-  // 阴影贴图在部分 WebGL 实现上会直接触发绘制错误，得不偿失。
-  lowSpec = mobile || memory <= 8 || cores <= 8 || dpr > 1.8;
+  // 自动画质：桌面普通配置使用写实球员和高分辨率，但保持简化看台；
+  // 只有高内存、多核心设备才开启完整看台。
+  // 实时阴影在部分 WebGL 实现上会触发绘制错误，因此所有档位都关闭阴影。
+  highQuality = !mobile && memory >= 8 && cores >= 8 && dpr <= 2;
+  detailedPlayers = !mobile && memory >= 4 && cores >= 6 && dpr <= 2.5;
+  richScene = highQuality && memory >= 16 && cores >= 12;
+  lowSpec = !richScene;
   try {
     renderer = new THREE.WebGLRenderer({
-      antialias: false,
-      powerPreference: lowSpec ? 'default' : 'high-performance',
+      antialias: highQuality,
+      powerPreference: highQuality ? 'high-performance' : 'default',
     });
   } catch (e) {
     console.error('WebGL 不可用', e);
@@ -1174,9 +1205,9 @@ export function start3D(container, onExit) {
   active = true;
   // 同时限制 DPR 和总像素数，避免 2K/4K 屏幕上直接渲染数百万像素。
   const applyRendererSize = () => {
-    const maxPixels = lowSpec ? 1280 * 720 : 1600 * 900;
+    const maxPixels = highQuality ? 1920 * 1080 : 1280 * 720;
     const pixelBudget = Math.sqrt(maxPixels / Math.max(1, window.innerWidth * window.innerHeight));
-    renderer.setPixelRatio(Math.max(0.35, Math.min(dpr, lowSpec ? 1 : 1.25, pixelBudget)));
+    renderer.setPixelRatio(Math.max(0.35, Math.min(dpr, highQuality ? 1.5 : 1, pixelBudget)));
     renderer.setSize(window.innerWidth, window.innerHeight);
   };
   applyRendererSize();
@@ -1187,11 +1218,16 @@ export function start3D(container, onExit) {
   scene.background = new THREE.Color(0x0c2418);
   scene.fog = new THREE.Fog(0x0c2418, 1500, 4200);
 
-  scene.add(new THREE.HemisphereLight(0xdfeaff, 0x275f3a, 1.15));
-  sun = new THREE.DirectionalLight(0xfff3d6, lowSpec ? 1.25 : 1.55);
+  scene.add(new THREE.HemisphereLight(0xdfeaff, 0x275f3a, highQuality ? 1.35 : 1.15));
+  sun = new THREE.DirectionalLight(0xfff3d6, highQuality ? 1.75 : 1.25);
   sun.position.set(FW * 0.55, 1600, FH * 0.25);
   sun.castShadow = false;
   scene.add(sun);
+  if (highQuality) {
+    const fill = new THREE.DirectionalLight(0xbad7ff, 0.42);
+    fill.position.set(-FW * 0.2, 900, -FH * 0.15);
+    scene.add(fill);
+  }
 
   // 场地
   const field = new THREE.Mesh(
@@ -1212,7 +1248,7 @@ export function start3D(container, onExit) {
   ax.fillStyle = '#1a4a2f';
   ax.fillRect(0, 0, apronCvs.width, apronCvs.height);
   // 随机草丛噪点
-  for (let i = 0; i < (lowSpec ? 200 : 500); i++) {
+  for (let i = 0; i < (richScene ? 500 : 200); i++) {
     const px = Math.random() * apronCvs.width;
     const py = Math.random() * apronCvs.height;
     const b = Math.random() * 20 - 10;
@@ -1234,6 +1270,8 @@ export function start3D(container, onExit) {
   scene.add(buildStadium());
 
   ensurePlayerMeshes(22);
+  playerShadowMesh = buildPlayerShadows(22);
+  scene.add(playerShadowMesh);
   ballMesh = buildSoccerBall();
   ballMesh.traverse((o) => { if (o.isMesh) o.castShadow = false; });
   scene.add(ballMesh);
@@ -1248,7 +1286,7 @@ export function start3D(container, onExit) {
 
   const tag = document.createElement('div');
   tag.className = 'stage3d-tag';
-  tag.textContent = '3D 画面';
+  tag.textContent = detailedPlayers ? (richScene ? '3D 画面 · 精细' : '3D 画面 · 高清') : '3D 画面 · 流畅';
   stageEl.appendChild(tag);
 
   if (onExit) {
@@ -1304,6 +1342,7 @@ export function stop3D() {
   camera = null;
   sun = null;
   playerMeshes = [];
+  playerShadowMesh = null;
   ballMesh = null;
   ballShadow = null;
   lastBall = null;
@@ -1313,7 +1352,7 @@ export function stop3D() {
 export function render3DFrame(snap) {
   if (!active || !scene || !camera || !ballMesh) return;
   const now = performance.now();
-  const frameInterval = lowSpec ? 1000 / 30 : 1000 / 50;
+  const frameInterval = highQuality ? 1000 / 50 : 1000 / 30;
   if (lastFrameTime && now - lastFrameTime < frameInterval - 1) return;
   const dt = lastFrameTime ? Math.min(0.08, (now - lastFrameTime) / 1000) : 1 / 60;
   lastFrameTime = now;
@@ -1327,6 +1366,13 @@ export function render3DFrame(snap) {
     const spd = Math.hypot(p.vx || 0, p.vy || 0);
     m.visible = true;
     m.position.set(p.x, 0, p.y);
+    if (playerShadowMesh) {
+      shadowDummy.position.set(p.x, 0.45, p.y);
+      shadowDummy.rotation.set(0, 0, 0);
+      shadowDummy.scale.set(1, 1, 0.72);
+      shadowDummy.updateMatrix();
+      playerShadowMesh.setMatrixAt(i, shadowDummy.matrix);
+    }
     const fx = p.faceX || 0;
     const fy = p.faceY || (p.team === 0 ? 1 : -1);
     m.rotation.y = Math.atan2(fx, fy);
@@ -1389,6 +1435,7 @@ export function render3DFrame(snap) {
       ring.visible = false;
     }
   });
+  if (playerShadowMesh) playerShadowMesh.instanceMatrix.needsUpdate = true;
 
   // 足球：位置 + 旋转 + 地面阴影
   const b = snap.ball;
@@ -1426,6 +1473,9 @@ export function render3DFrame(snap) {
       calls: renderer.info.render.calls,
       triangles: renderer.info.render.triangles,
       lowSpec,
+      highQuality,
+      detailedPlayers,
+      richScene,
       pixelRatio: renderer.getPixelRatio(),
     };
   }
