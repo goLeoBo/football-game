@@ -13,6 +13,7 @@ import {
   Vec2,
   Vec3,
 } from 'playcanvas';
+import playerUrl from '../assets/player.glb?url';
 
 const FW = 1389;
 const FH = 900;
@@ -38,6 +39,7 @@ let lastFrameTime = 0;
 let lastBall = null;
 let quality = 'balanced';
 let qualitySignature = '';
+let playerTemplateAsset = null;
 
 function hexColor(hex, fallback = '#ffffff') {
   const value = String(hex || fallback).replace('#', '');
@@ -265,6 +267,69 @@ function buildPlayers() {
   players = Array.from({ length: 22 }, (_, i) => buildPlayer(i < 11 ? 0 : 1, i === 0 || i === 11, playerMaterials));
 }
 
+function softTint(color) {
+  return new Color(
+    0.48 + color.r * 0.52,
+    0.48 + color.g * 0.52,
+    0.48 + color.b * 0.52,
+  );
+}
+
+function upgradePlayersToModels() {
+  if (!playerTemplateAsset || !playerTemplateAsset.resource || !players.length) return;
+  const resource = playerTemplateAsset.resource;
+  const animationAssets = resource.animations || [];
+  if (!animationAssets.length) return;
+  const animationName = animationAssets[0].name;
+  const animationIds = animationAssets.map((asset) => asset.id);
+
+  players.forEach((player, idx) => {
+    if (player.model) return;
+    const model = resource.instantiateModelEntity({ castShadows: false });
+    model.name = `player-model-${idx}`;
+    model.setLocalScale(13.23, 13.23, 13.23);
+    model.addComponent('animation', {
+      assets: animationIds,
+      speed: 1,
+      activate: true,
+      loop: true,
+    });
+    model.animation.play(animationName);
+    player.root.children.forEach((child) => {
+      child.enabled = false;
+    });
+    player.root.addChild(model);
+    player.model = model;
+
+    const team = idx < 11 ? 0 : 1;
+    const isGK = idx === 0 || idx === 11;
+    const tint = softTint(playerMaterials[team][isGK ? 1 : 0].diffuse);
+    model.model.meshInstances.forEach((meshInstance) => {
+      const material = meshInstance.material.clone();
+      material.diffuse = tint.clone();
+      material.emissive = new Color(tint.r * 0.06, tint.g * 0.06, tint.b * 0.06);
+      material.update();
+      meshInstance.material = material;
+    });
+  });
+  if (stageEl) {
+    const tag = stageEl.querySelector('.stage3d-tag');
+    if (tag) tag.textContent = 'PlayCanvas · 写实';
+  }
+}
+
+function loadPlayerModels() {
+  if (quality !== 'high' || playerTemplateAsset) return;
+  app.assets.loadFromUrl(playerUrl, 'container', (error, asset) => {
+    if (error) {
+      console.warn('PlayCanvas 球员模型加载失败，保留低多边形球员', error);
+      return;
+    }
+    playerTemplateAsset = asset;
+    upgradePlayersToModels();
+  });
+}
+
 function updateKitColors(teams) {
   if (!teams || !playerMaterials) return;
   const sig = teams.map((t) => [t.name, t.jersey, t.gkJersey, t.shorts].join('|')).join('~');
@@ -320,6 +385,7 @@ function buildScene(container, onExit) {
   const adMat = makeMaterial('#0b3d91', { gloss: 0.24, emissive: '#071b3e' });
   addAdBoards(adMat);
   buildPlayers();
+  loadPlayerModels();
   buildBall(makeTexture(makeBallCanvas(), { anisotropy: 2 }));
 
   const ringMat = makeMaterial('#ffffff', {
@@ -378,6 +444,10 @@ function buildScene(container, onExit) {
   window.addEventListener('resize', resizeHandler);
   app.start();
   app.resizeCanvas();
+  if (import.meta.env.DEV) {
+    window.__playCanvasApp = app;
+    window.__playCanvasPlayerUrl = playerUrl;
+  }
 }
 
 export function start3D(container, onExit) {
@@ -416,6 +486,7 @@ export function stop3D() {
   canvas = null;
   players = [];
   playerMaterials = null;
+  playerTemplateAsset = null;
   ball = null;
   focusRing = null;
   qualitySignature = '';
@@ -440,6 +511,12 @@ export function render3DFrame(snap) {
     player.root.enabled = true;
     player.root.setPosition(p.x, 0, p.y);
     player.root.setEulerAngles(0, Math.atan2(p.faceX || 0, p.faceY || (p.team === 0 ? 1 : -1)) * 180 / Math.PI, 0);
+    if (player.model && player.model.animation) {
+      player.model.animation.speed = Math.hypot(p.vx || 0, p.vy || 0) < 0.22
+        ? 0
+        : p.slide ? 0.25 : Math.max(0.65, Math.min(1.9, 0.65 + Math.hypot(p.vx || 0, p.vy || 0) * 0.7));
+      player.model.setLocalEulerAngles(p.slide ? -28 : 0, 0, 0);
+    }
   });
   if (focusRing) {
     const p = snap.players[activeIdx];
