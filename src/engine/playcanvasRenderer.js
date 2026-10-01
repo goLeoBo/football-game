@@ -116,11 +116,35 @@ function makeFieldCanvas() {
   x.strokeRect(size - 7 - boxD, (h - boxW) / 2, boxD, boxW);
   x.strokeRect(7, (h - goalW) / 2, goalD, goalW);
   x.strokeRect(size - 7 - goalD, (h - goalW) / 2, goalD, goalW);
+  const penR = mx(m(10));
+  const penL = 7 + mx(m(11));
+  const penRight = size - 7 - mx(m(11));
+  x.beginPath();
+  x.arc(penL, h / 2, penR, -Math.PI / 2, Math.PI / 2);
+  x.stroke();
+  x.beginPath();
+  x.arc(penRight, h / 2, penR, Math.PI / 2, -Math.PI / 2);
+  x.stroke();
+  const cornerR = mx(m(1));
+  [[7, 7, 0], [size - 7, 7, Math.PI / 2], [size - 7, h - 7, Math.PI], [7, h - 7, -Math.PI / 2]].forEach(([cx, cy, angle]) => {
+    x.beginPath();
+    x.arc(cx, cy, cornerR, angle, angle + Math.PI / 2);
+    x.stroke();
+  });
+  x.save();
+  x.translate(size / 2, h / 2);
+  x.rotate(-0.11);
+  x.fillStyle = 'rgba(255,255,255,.11)';
+  x.font = `900 ${Math.max(28, size / 12)}px "Arial Black", sans-serif`;
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.fillText('GREEN PITCH', 0, 0);
+  x.restore();
   x.fillStyle = '#fff';
   x.beginPath();
   x.arc(size / 2, h / 2, Math.max(2, size / 300), 0, Math.PI * 2);
-  x.arc(7 + mx(m(11)), h / 2, Math.max(2, size / 300), 0, Math.PI * 2);
-  x.arc(size - 7 - mx(m(11)), h / 2, Math.max(2, size / 300), 0, Math.PI * 2);
+  x.arc(penL, h / 2, Math.max(2, size / 300), 0, Math.PI * 2);
+  x.arc(penRight, h / 2, Math.max(2, size / 300), 0, Math.PI * 2);
   x.fill();
   return cv;
 }
@@ -141,6 +165,80 @@ function makeCrowdCanvas() {
       x.fill();
     }
   }
+  return cv;
+}
+
+function makeAdCanvas(index) {
+  const palettes = [
+    ['#0b3d91', '#0a2a63', 'PLAY FOOTBALL'],
+    ['#c8102e', '#7a0a1c', 'MATCH DAY'],
+    ['#0f7a4a', '#064a2c', 'GREEN PITCH'],
+    ['#f2c14e', '#c98a12', 'KICKOFF 2026'],
+    ['#111827', '#374151', 'WORLD STAGE'],
+    ['#6d28d9', '#3b0f80', 'LIVE FOOTBALL'],
+  ];
+  const [start, end, label] = palettes[index % palettes.length];
+  const cv = document.createElement('canvas');
+  cv.width = 512;
+  cv.height = 128;
+  const x = cv.getContext('2d');
+  const grad = x.createLinearGradient(0, 0, cv.width, 0);
+  grad.addColorStop(0, start);
+  grad.addColorStop(1, end);
+  x.fillStyle = grad;
+  x.fillRect(0, 0, cv.width, cv.height);
+  x.strokeStyle = 'rgba(255,255,255,.62)';
+  x.lineWidth = 7;
+  x.strokeRect(6, 6, cv.width - 12, cv.height - 12);
+  x.fillStyle = index === 3 ? '#1b1b1b' : '#ffffff';
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.font = '900 52px "Arial Black", "PingFang SC", sans-serif';
+  x.fillText(label, cv.width / 2, cv.height / 2);
+  return cv;
+}
+
+function makeNetCanvas() {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 128;
+  const x = cv.getContext('2d');
+  x.clearRect(0, 0, 128, 128);
+  x.strokeStyle = 'rgba(245,250,255,.78)';
+  x.lineWidth = 2;
+  for (let i = 0; i <= 128; i += 10) {
+    x.beginPath();
+    x.moveTo(i, 0);
+    x.lineTo(i, 128);
+    x.stroke();
+    x.beginPath();
+    x.moveTo(0, i);
+    x.lineTo(128, i);
+    x.stroke();
+  }
+  return cv;
+}
+
+function makeScreenCanvas() {
+  const cv = document.createElement('canvas');
+  cv.width = 512;
+  cv.height = 256;
+  const x = cv.getContext('2d');
+  x.fillStyle = '#071018';
+  x.fillRect(0, 0, cv.width, cv.height);
+  x.strokeStyle = '#36d7ff';
+  x.lineWidth = 8;
+  x.strokeRect(8, 8, cv.width - 16, cv.height - 16);
+  x.fillStyle = '#f8fafc';
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.font = '900 58px "Arial Black", sans-serif';
+  x.fillText('PLAYCANVAS', cv.width / 2, 92);
+  x.fillStyle = '#ffd60a';
+  x.font = '700 32px sans-serif';
+  x.fillText('FOOTBALL LIVE', cv.width / 2, 158);
+  x.fillStyle = '#7dffb0';
+  x.font = '600 22px monospace';
+  x.fillText('HOME  00 : 00  AWAY', cv.width / 2, 210);
   return cv;
 }
 
@@ -188,32 +286,145 @@ function addRenderEntity(name, type, material, position, scale, parent = sceneRo
   return entity;
 }
 
-function addAdBoards(adMaterial) {
-  const count = quality === 'low' ? 10 : 18;
+function addAdBoards(adMaterials) {
+  const count = quality === 'low' ? 12 : 20;
   for (let i = 0; i < count; i++) {
     const w = FW / count;
-    const board = addRenderEntity('ad', 'box', adMaterial, [w * (i + 0.5), 4, -26], [w - 2, 7, 2]);
-    board.setLocalEulerAngles(0, 0, 0);
+    const material = adMaterials[i % adMaterials.length];
+    addRenderEntity('ad-near', 'box', material, [w * (i + 0.5), 4, FH + 25], [w - 1.5, 7, 2]);
     if (quality !== 'low') {
-      addRenderEntity('ad-far', 'box', adMaterial, [w * (i + 0.5), 4, FH + 26], [w - 2, 7, 2]);
+      addRenderEntity('ad-far', 'box', material, [w * (i + 0.5), 4, -25], [w - 1.5, 7, 2]);
+    }
+  }
+  if (quality === 'high') {
+    const endCount = 12;
+    for (let i = 0; i < endCount; i++) {
+      const w = FH / endCount;
+      const material = adMaterials[(i + 2) % adMaterials.length];
+      addRenderEntity('ad-west', 'box', material, [-25, 4, w * (i + 0.5)], [2, 7, w - 1.5]);
+      addRenderEntity('ad-east', 'box', material, [FW + 25, 4, w * (i + 0.5)], [2, 7, w - 1.5]);
     }
   }
 }
 
-function buildStadium(crowdMaterial) {
-  const standHeight = quality === 'high' ? 106 : 74;
-  const standDepth = quality === 'high' ? 116 : 86;
-  const standY = standHeight / 2;
-  addRenderEntity('stand-n', 'box', crowdMaterial, [FW / 2, standY, -standDepth * 0.52], [FW + 170, standHeight, standDepth]);
-  addRenderEntity('stand-s', 'box', crowdMaterial, [FW / 2, standY, FH + standDepth * 0.52], [FW + 170, standHeight, standDepth]);
-  addRenderEntity('stand-w', 'box', crowdMaterial, [-standDepth * 0.52, standY, FH / 2], [standDepth, standHeight, FH + 170]);
-  addRenderEntity('stand-e', 'box', crowdMaterial, [FW + standDepth * 0.52, standY, FH / 2], [standDepth, standHeight, FH + 170]);
+function addTierBox(name, along, dir, length, offset, depth, height, baseY, material) {
+  const position = along === 'x'
+    ? [FW / 2, baseY + height / 2, along === 'x' && dir > 0 ? FH + offset : -offset]
+    : [dir > 0 ? FW + offset : -offset, baseY + height / 2, FH / 2];
+  const scale = along === 'x'
+    ? [length, height, depth]
+    : [depth, height, length];
+  return addRenderEntity(name, 'box', material, position, scale);
+}
+
+function buildStadium(crowdMaterial, screenMaterial) {
+  const concrete = makeMaterial('#8d949c', { gloss: 0.16 });
+  const dark = makeMaterial('#252c33', { gloss: 0.28 });
+  const rail = makeMaterial('#b8c0c8', { gloss: 0.34, metalness: 0.32 });
+  const roofMat = makeMaterial('#20272e', { gloss: 0.3, metalness: 0.22 });
+  const lampMat = makeMaterial('#fff5cf', { gloss: 0.72, emissive: '#fff0ad' });
+  const flagMat = makeMaterial('#ffd60a', { gloss: 0.18, emissive: '#7b5f00' });
+  const tiers = quality === 'high'
+    ? [[44, 62], [36, 52], [28, 42]]
+    : [[62, 92]];
+  const baseGap = 20;
+  let depthAcum = 0;
+  let heightAcum = 0;
+  tiers.forEach(([height, depth], tierIndex) => {
+    const offset = baseGap + depthAcum + depth / 2;
+    const tierMat = tierIndex === 0 && quality === 'high' ? crowdMaterial : concrete;
+    addTierBox(`tier-n-${tierIndex}`, 'x', -1, FW + 150, offset, depth, height, heightAcum, tierMat);
+    addTierBox(`tier-s-${tierIndex}`, 'x', 1, FW + 150, offset, depth, height, heightAcum, tierMat);
+    addTierBox(`tier-w-${tierIndex}`, 'z', -1, FH + 150, offset, depth, height, heightAcum, tierMat);
+    addTierBox(`tier-e-${tierIndex}`, 'z', 1, FH + 150, offset, depth, height, heightAcum, tierMat);
+
+    const fasciaOffset = baseGap + depthAcum + 1.5;
+    addTierBox(`fascia-n-${tierIndex}`, 'x', -1, FW + 155, fasciaOffset, 3, height + 4, heightAcum, dark);
+    addTierBox(`fascia-s-${tierIndex}`, 'x', 1, FW + 155, fasciaOffset, 3, height + 4, heightAcum, dark);
+    addTierBox(`fascia-w-${tierIndex}`, 'z', -1, FH + 155, fasciaOffset, 3, height + 4, heightAcum, dark);
+    addTierBox(`fascia-e-${tierIndex}`, 'z', 1, FH + 155, fasciaOffset, 3, height + 4, heightAcum, dark);
+
+    const aisleCount = quality === 'high' ? 8 : 0;
+    for (let i = 1; i < aisleCount; i++) {
+      const x = -70 + (FW + 140) * (i / aisleCount);
+      addRenderEntity(`aisle-n-${tierIndex}-${i}`, 'box', rail, [x, heightAcum + height / 2, -fasciaOffset - 0.8], [3, height, 4]);
+      addRenderEntity(`aisle-s-${tierIndex}-${i}`, 'box', rail, [x, heightAcum + height / 2, FH + fasciaOffset + 0.8], [3, height, 4]);
+      const z = -70 + (FH + 140) * (i / aisleCount);
+      addRenderEntity(`aisle-w-${tierIndex}-${i}`, 'box', rail, [-fasciaOffset - 0.8, heightAcum + height / 2, z], [4, height, 3]);
+      addRenderEntity(`aisle-e-${tierIndex}-${i}`, 'box', rail, [FW + fasciaOffset + 0.8, heightAcum + height / 2, z], [4, height, 3]);
+    }
+    depthAcum += depth;
+    heightAcum += height;
+  });
+
   if (quality === 'high') {
-    const roofMat = makeMaterial('#2b3238', { gloss: 0.28 });
-    addRenderEntity('roof-n', 'box', roofMat, [FW / 2, 136, -72], [FW + 240, 8, 150]);
-    addRenderEntity('roof-s', 'box', roofMat, [FW / 2, 136, FH + 72], [FW + 240, 8, 150]);
-    addRenderEntity('roof-w', 'box', roofMat, [-72, 136, FH / 2], [150, 8, FH + 240]);
-    addRenderEntity('roof-e', 'box', roofMat, [FW + 72, 136, FH / 2], [150, 8, FH + 240]);
+    const roofOffset = baseGap + depthAcum * 0.55;
+    const roofDepth = depthAcum + 44;
+    addRenderEntity('roof-n', 'box', roofMat, [FW / 2, heightAcum + 25, -roofOffset], [FW + 250, 8, roofDepth]);
+    addRenderEntity('roof-s', 'box', roofMat, [FW / 2, heightAcum + 25, FH + roofOffset], [FW + 250, 8, roofDepth]);
+    addRenderEntity('roof-w', 'box', roofMat, [-roofOffset, heightAcum + 25, FH / 2], [roofDepth, 8, FH + 250]);
+    addRenderEntity('roof-e', 'box', roofMat, [FW + roofOffset, heightAcum + 25, FH / 2], [roofDepth, 8, FH + 250]);
+    for (let x = -30; x <= FW + 30; x += 170) {
+      addRenderEntity('support-n', 'cylinder', dark, [x, (heightAcum + 25) / 2, -baseGap - depthAcum], [4, heightAcum + 25, 4]);
+      addRenderEntity('support-s', 'cylinder', dark, [x, (heightAcum + 25) / 2, FH + baseGap + depthAcum], [4, heightAcum + 25, 4]);
+    }
+    for (let z = 0; z <= FH; z += 170) {
+      addRenderEntity('support-w', 'cylinder', dark, [-baseGap - depthAcum, (heightAcum + 25) / 2, z], [4, heightAcum + 25, 4]);
+      addRenderEntity('support-e', 'cylinder', dark, [FW + baseGap + depthAcum, (heightAcum + 25) / 2, z], [4, heightAcum + 25, 4]);
+    }
+
+    const pylonH = heightAcum + 120;
+    [[-55, -55], [FW + 55, -55], [-55, FH + 55], [FW + 55, FH + 55]].forEach(([px, pz], i) => {
+      addRenderEntity(`flood-pole-${i}`, 'cylinder', dark, [px, pylonH / 2, pz], [7, pylonH, 7]);
+      addRenderEntity(`flood-head-${i}`, 'box', dark, [px, pylonH - 12, pz], [52, 26, 12]);
+      for (let row = 0; row < 2; row++) {
+        for (let col = 0; col < 3; col++) {
+          addRenderEntity(`flood-lamp-${i}-${row}-${col}`, 'box', lampMat, [px - 17 + col * 17, pylonH - 19 + row * 10, pz], [12, 6, 3]);
+        }
+      }
+    });
+
+    const screenZ = -baseGap - depthAcum - 14;
+    addRenderEntity('screen-n-frame', 'box', dark, [FW / 2, heightAcum + 42, screenZ], [174, 96, 8]);
+    const screenN = addRenderEntity('screen-n', 'plane', screenMaterial, [FW / 2, heightAcum + 42, screenZ + 5], [160, 1, 82]);
+    screenN.setLocalEulerAngles(90, 0, 0);
+    const screenS = addRenderEntity('screen-s', 'plane', screenMaterial, [FW / 2, heightAcum + 42, FH - screenZ], [160, 1, 82]);
+    screenS.setLocalEulerAngles(-90, 0, 0);
+  }
+
+  [[20, 20], [FW - 20, 20], [20, FH - 20], [FW - 20, FH - 20]].forEach(([fx, fz], i) => {
+    addRenderEntity(`corner-pole-${i}`, 'cylinder', rail, [fx, 11, fz], [0.8, 22, 0.8]);
+    addRenderEntity(`corner-flag-${i}`, 'box', flagMat, [fx + 5, 18, fz], [10, 6, 0.5]);
+  });
+
+  // Player tunnels on the two long sides.
+  addRenderEntity('tunnel-north', 'box', dark, [FW / 2, 24, -baseGap + 1], [78, 48, 3]);
+  addRenderEntity('tunnel-south', 'box', dark, [FW / 2, 24, FH + baseGap - 1], [78, 48, 3]);
+
+  const glass = makeMaterial('#8fd8ff', { gloss: 0.7, opacity: 0.24 });
+  glass.blendType = BLEND_NORMAL;
+  glass.depthWrite = false;
+  glass.update();
+  [FW * 0.3, FW * 0.7].forEach((x, i) => {
+    const z = FH + 13;
+    addRenderEntity(`dugout-back-${i}`, 'box', dark, [x, 10, z + 5], [116, 20, 3]);
+    addRenderEntity(`dugout-glass-${i}`, 'box', glass, [x, 11, z], [114, 18, 1.2]);
+    addRenderEntity(`dugout-roof-${i}`, 'box', dark, [x, 21, z + 2], [124, 3, 12]);
+    if (quality === 'high') {
+      for (let seat = -45; seat <= 45; seat += 18) {
+        addRenderEntity(`dugout-seat-${i}-${seat}`, 'box', rail, [x + seat, 5, z + 2], [14, 2, 6]);
+      }
+    }
+  });
+
+  if (quality === 'high') {
+    const cameraMat = makeMaterial('#d8dee6', { gloss: 0.32, metalness: 0.35 });
+    const lensMat = makeMaterial('#111827', { gloss: 0.7, metalness: 0.25 });
+    [[165, FH + 34], [FW - 165, FH + 34], [FW / 2, -34]].forEach(([x, z], i) => {
+      addRenderEntity(`camera-body-${i}`, 'box', cameraMat, [x, 8, z], [13, 8, 9]);
+      addRenderEntity(`camera-lens-${i}`, 'cylinder', lensMat, [x, 8, z + (z > 0 ? -7 : 7)], [4.5, 8, 4.5]).setLocalEulerAngles(90, 0, 0);
+      addRenderEntity(`camera-leg-${i}`, 'cylinder', dark, [x, 3, z], [1.1, 7, 1.1]);
+    });
   }
 }
 
@@ -372,18 +583,24 @@ function buildScene(container, onExit) {
   addRenderEntity('apron', 'plane', apronMat, [FW / 2, -0.45, FH / 2], [FW + 300, 1, FH + 250]);
 
   const crowdMat = makeMaterial('#ffffff', { gloss: 0.06, diffuseMap: makeTexture(makeCrowdCanvas(), { anisotropy: 2 }) });
-  buildStadium(crowdMat);
+  const screenMat = makeMaterial('#ffffff', { gloss: 0.22, emissive: '#122838', diffuseMap: makeTexture(makeScreenCanvas(), { anisotropy: 2 }) });
+  buildStadium(crowdMat, screenMat);
 
   const postMat = makeMaterial('#f4f7fb', { gloss: 0.7, metalness: 0.55 });
-  const netMat = makeMaterial('#ffffff', { gloss: 0.1, opacity: 0.18 });
+  const netMat = makeMaterial('#ffffff', { gloss: 0.1, opacity: 0.72, diffuseMap: makeTexture(makeNetCanvas(), { anisotropy: 2 }) });
   netMat.blendType = BLEND_NORMAL;
   netMat.depthWrite = false;
   netMat.update();
   buildGoal(-1, postMat, netMat);
   buildGoal(1, postMat, netMat);
 
-  const adMat = makeMaterial('#0b3d91', { gloss: 0.24, emissive: '#071b3e' });
-  addAdBoards(adMat);
+  const adCount = quality === 'low' ? 3 : 6;
+  const adMaterials = Array.from({ length: adCount }, (_, i) => makeMaterial('#ffffff', {
+    gloss: 0.22,
+    emissive: '#091726',
+    diffuseMap: makeTexture(makeAdCanvas(i), { anisotropy: 2 }),
+  }));
+  addAdBoards(adMaterials);
   buildPlayers();
   loadPlayerModels();
   buildBall(makeTexture(makeBallCanvas(), { anisotropy: 2 }));
