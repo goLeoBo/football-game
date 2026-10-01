@@ -100,7 +100,7 @@ function ClubBadge({ club, selected }) {
 }
 
 export default function Prematch() {
-  const { selectedFormation, pm, three3d } = useGame();
+  const { selectedFormation, pm, render3d } = useGame();
   const info = pm.info || PM_CLUBS[0];
   const opp = pm.opp || PM_CLUBS[1] || PM_CLUBS[0];
   const toast = pm.toast || { text: '', key: 0 };
@@ -168,7 +168,7 @@ export default function Prematch() {
         <button className="pm-star" onClick={() => game.showStarPack()}>⭐ 球星卡 · 抽卡组队挑战俱乐部</button>
         <button className="pm-more" onClick={() => game.uiPmMore()}>🌍 世界杯模式</button>
         <button className="pm-more pm-3d" onClick={() => game.toggle3D()}>
-          {three3d ? '🎬 3D 画质：开' : '🎬 3D 画质：关'}
+          {render3d ? '🎬 3D 画质：开' : '🎬 3D 画质：关'}
         </button>
       </div>
       <div className={`pm-toast${toast.text ? ' show' : ''}`} key={toast.key}>{toast.text}</div>

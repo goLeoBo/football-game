@@ -8,19 +8,13 @@ import {
   STAR_CARDS_DEDUP, cardRarity,
 } from "./data.js";
 import { commit, getState } from "./store.js";
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import playerUrl from '../assets/player.glb?url';
-import { start3D, stop3D, render3DFrame } from './threeRenderer.js';
+import { start3D, stop3D, render3DFrame } from './playcanvasRenderer.js';
 
-// 兼容旧函数名：旧代码调 startThree3D/stopThree3D
-function startThree3D(container, onExit) { return start3D(container, onExit); }
-function stopThree3D() { stop3D(); }
+function startRenderer3D(container, onExit) { return start3D(container, onExit); }
+function stopRenderer3D() { stop3D(); }
 
 let cv = null, ctx = null;
-let threeActive = false;   // 是否正在用 Three.js 渲染比赛画面
+let render3DActive = false;   // 是否正在用 PlayCanvas 渲染比赛画面
 let prefer3D = true;       // 默认优先 3D，可通过“返回 2D”切回
 let myCards = [];          // 球星卡模式：玩家拥有的卡
 let starMatchOn = false;   // 球星卡模式开关（red 用 myCards，blue 用随机 STAR_CARDS 豪华版）
@@ -3246,8 +3240,8 @@ function loop(t){
     if(lastActiveName !== ''){ lastActiveName=''; commit({ activeName: '' }); }
   }
   const curScreen = getState().screen;
-  if(threeActive && mode==='match'){
-    // 3D 模式：玩法/AI/物理仍由 Canvas 引擎计算，画面交给 Three.js
+  if(render3DActive && mode==='match'){
+    // 3D 模式：玩法/AI/物理仍由 Canvas 引擎计算，画面交给 PlayCanvas
     const focusP = players[activeIdx] || players[0];
     const st = getState();
     render3DFrame({
@@ -3294,25 +3288,25 @@ function team3DInfo(name){
   return { name: name || '', ...kit, crest: teamCrestURL(name) };
 }
 
-// 玩法/AI/物理全部复用原引擎，只把画面层切到 Three.js（失败则回退 2D）。
+// 玩法/AI/物理全部复用原引擎，只把画面层切到 PlayCanvas（失败则回退 2D）。
 function ensure3DMatch(){
-  if(threeActive) return true;
+  if(render3DActive) return true;
   if(!prefer3D) return false;
   const wrap = document.getElementById('wrap');
   if(!wrap) return false;
   try {
-    const ok = startThree3D(wrap, stop3DExperiment);
+    const ok = startRenderer3D(wrap, stop3DExperiment);
     if(!ok) {
       cv.style.display = '';
       return false;
     }
-    threeActive = true;
+    render3DActive = true;
     cv.style.display = 'none';
     resize();
     return true;
   } catch(e) {
     console.error('3D 初始化异常，回退到 2D', e);
-    threeActive = false;
+    render3DActive = false;
     prefer3D = false;
     cv.style.display = '';
     return false;
@@ -3320,23 +3314,23 @@ function ensure3DMatch(){
 }
 function start3DExperiment(){
   prefer3D = true;
-  commit({ three3d: true });
+  commit({ render3d: true });
   ensure3DMatch();
   startMatch();
 }
 function stop3DExperiment(){
-  if(!threeActive) return;
+  if(!render3DActive) return;
   prefer3D = false;
-  commit({ three3d: false });
-  threeActive = false;
-  stopThree3D();
+  commit({ render3d: false });
+  render3DActive = false;
+  stopRenderer3D();
   cv.style.display = '';
   resize();
 }
 // 赛前界面：手动在 2D / 3D 画面之间切换
 function toggle3D(){
   prefer3D = !prefer3D;
-  commit({ three3d: prefer3D });
+  commit({ render3d: prefer3D });
   if(prefer3D){
     if(mode==='match') ensure3DMatch();
   } else {
@@ -3345,9 +3339,9 @@ function toggle3D(){
 }
 function deactivate3DStage(){
   // 离开比赛（菜单/点球）时收起 3D，但保留“下次仍用 3D”的偏好
-  if(!threeActive) return;
-  threeActive = false;
-  stopThree3D();
+  if(!render3DActive) return;
+  render3DActive = false;
+  stopRenderer3D();
   cv.style.display = '';
   resize();
 }
