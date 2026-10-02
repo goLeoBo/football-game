@@ -287,7 +287,7 @@ function addRenderEntity(name, type, material, position, scale, parent = sceneRo
 }
 
 function addAdBoards(adMaterials) {
-  const count = quality === 'low' ? 12 : 20;
+  const count = quality === 'low' ? 8 : 10;
   for (let i = 0; i < count; i++) {
     const w = FW / count;
     const material = adMaterials[i % adMaterials.length];
@@ -297,7 +297,7 @@ function addAdBoards(adMaterials) {
     }
   }
   if (quality === 'high') {
-    const endCount = 12;
+    const endCount = 6;
     for (let i = 0; i < endCount; i++) {
       const w = FH / endCount;
       const material = adMaterials[(i + 2) % adMaterials.length];
@@ -332,7 +332,7 @@ function buildStadium(crowdMaterial, screenMaterial) {
   let heightAcum = 0;
   tiers.forEach(([height, depth], tierIndex) => {
     const offset = baseGap + depthAcum + depth / 2;
-    const tierMat = tierIndex === 0 && quality === 'high' ? crowdMaterial : concrete;
+    const tierMat = crowdMaterial;
     addTierBox(`tier-n-${tierIndex}`, 'x', -1, FW + 150, offset, depth, height, heightAcum, tierMat);
     addTierBox(`tier-s-${tierIndex}`, 'x', 1, FW + 150, offset, depth, height, heightAcum, tierMat);
     addTierBox(`tier-w-${tierIndex}`, 'z', -1, FH + 150, offset, depth, height, heightAcum, tierMat);
@@ -344,15 +344,6 @@ function buildStadium(crowdMaterial, screenMaterial) {
     addTierBox(`fascia-w-${tierIndex}`, 'z', -1, FH + 155, fasciaOffset, 3, height + 4, heightAcum, dark);
     addTierBox(`fascia-e-${tierIndex}`, 'z', 1, FH + 155, fasciaOffset, 3, height + 4, heightAcum, dark);
 
-    const aisleCount = quality === 'high' ? 8 : 0;
-    for (let i = 1; i < aisleCount; i++) {
-      const x = -70 + (FW + 140) * (i / aisleCount);
-      addRenderEntity(`aisle-n-${tierIndex}-${i}`, 'box', rail, [x, heightAcum + height / 2, -fasciaOffset - 0.8], [3, height, 4]);
-      addRenderEntity(`aisle-s-${tierIndex}-${i}`, 'box', rail, [x, heightAcum + height / 2, FH + fasciaOffset + 0.8], [3, height, 4]);
-      const z = -70 + (FH + 140) * (i / aisleCount);
-      addRenderEntity(`aisle-w-${tierIndex}-${i}`, 'box', rail, [-fasciaOffset - 0.8, heightAcum + height / 2, z], [4, height, 3]);
-      addRenderEntity(`aisle-e-${tierIndex}-${i}`, 'box', rail, [FW + fasciaOffset + 0.8, heightAcum + height / 2, z], [4, height, 3]);
-    }
     depthAcum += depth;
     heightAcum += height;
   });
@@ -364,24 +355,15 @@ function buildStadium(crowdMaterial, screenMaterial) {
     addRenderEntity('roof-s', 'box', roofMat, [FW / 2, heightAcum + 25, FH + roofOffset], [FW + 250, 8, roofDepth]);
     addRenderEntity('roof-w', 'box', roofMat, [-roofOffset, heightAcum + 25, FH / 2], [roofDepth, 8, FH + 250]);
     addRenderEntity('roof-e', 'box', roofMat, [FW + roofOffset, heightAcum + 25, FH / 2], [roofDepth, 8, FH + 250]);
-    for (let x = -30; x <= FW + 30; x += 170) {
-      addRenderEntity('support-n', 'cylinder', dark, [x, (heightAcum + 25) / 2, -baseGap - depthAcum], [4, heightAcum + 25, 4]);
-      addRenderEntity('support-s', 'cylinder', dark, [x, (heightAcum + 25) / 2, FH + baseGap + depthAcum], [4, heightAcum + 25, 4]);
-    }
-    for (let z = 0; z <= FH; z += 170) {
-      addRenderEntity('support-w', 'cylinder', dark, [-baseGap - depthAcum, (heightAcum + 25) / 2, z], [4, heightAcum + 25, 4]);
-      addRenderEntity('support-e', 'cylinder', dark, [FW + baseGap + depthAcum, (heightAcum + 25) / 2, z], [4, heightAcum + 25, 4]);
-    }
+    [[-baseGap - depthAcum, -baseGap - depthAcum], [FW + baseGap + depthAcum, -baseGap - depthAcum],
+      [-baseGap - depthAcum, FH + baseGap + depthAcum], [FW + baseGap + depthAcum, FH + baseGap + depthAcum]]
+      .forEach(([x, z], i) => addRenderEntity(`corner-support-${i}`, 'cylinder', dark, [x, (heightAcum + 25) / 2, z], [5, heightAcum + 25, 5]));
 
     const pylonH = heightAcum + 120;
     [[-55, -55], [FW + 55, -55], [-55, FH + 55], [FW + 55, FH + 55]].forEach(([px, pz], i) => {
       addRenderEntity(`flood-pole-${i}`, 'cylinder', dark, [px, pylonH / 2, pz], [7, pylonH, 7]);
-      addRenderEntity(`flood-head-${i}`, 'box', dark, [px, pylonH - 12, pz], [52, 26, 12]);
-      for (let row = 0; row < 2; row++) {
-        for (let col = 0; col < 3; col++) {
-          addRenderEntity(`flood-lamp-${i}-${row}-${col}`, 'box', lampMat, [px - 17 + col * 17, pylonH - 19 + row * 10, pz], [12, 6, 3]);
-        }
-      }
+      addRenderEntity(`flood-head-${i}`, 'box', dark, [px, pylonH - 12, pz], [58, 30, 12]);
+      addRenderEntity(`flood-lamp-${i}`, 'box', lampMat, [px, pylonH - 19, pz], [52, 12, 3]);
     });
 
     const screenZ = -baseGap - depthAcum - 14;
@@ -619,14 +601,14 @@ function buildScene(container, onExit) {
   camera = new Entity('camera');
   camera.addComponent('camera', {
     clearColor: new Color(0.035, 0.12, 0.075),
-    fov: 32,
+    fov: 40,
     nearClip: 1,
     farClip: 6500,
     frustumCulling: true,
   });
   sceneRoot.addChild(camera);
-  camera.setPosition(FW / 2, 430, FH + 330);
-  camera.lookAt(FW / 2, 0, FH / 2);
+  camera.setPosition(FW / 2, quality === 'low' ? 300 : 240, FH + 300);
+  camera.lookAt(FW / 2, 28, FH / 2);
 
   const sun = new Entity('sun');
   sun.addComponent('light', {
@@ -758,7 +740,7 @@ export function render3DFrame(snap) {
   const targetZ = Math.max(70, Math.min(FH - 70, focus.y));
   camX += (targetX - camX) * Math.min(1, dt * 3.2);
   camZ += (targetZ - camZ) * Math.min(1, dt * 2.8);
-  camera.setPosition(camX, quality === 'low' ? 470 : 430, FH + 330);
-  camera.lookAt(camX, 0, camZ);
+  camera.setPosition(camX, quality === 'low' ? 300 : 240, FH + 300);
+  camera.lookAt(camX, 28, camZ);
   app.render();
 }
